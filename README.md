@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:16:54
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-24 22:27:48
+ * @LastEditTime: 2021-02-24 23:23:17
  * @Modified By: dfh
  * @FilePath: /day25-react/README.md
 -->
@@ -15,24 +15,16 @@
 
 #### 1.1. 实例代码
 
-``` js
-import React from 'react';
-import ReactDOM from 'react-dom';
+``` react
+import React from './react';
+import ReactDOM from './react-dom';
 
-let element = ( <
-    div id = 'title'
-    style = {
-        {
-            color: 'red',
-            background: 'green'
-        }
-    } >
-    <
-    span > hello < /span>
-    world <
-    /div>
+let element = (
+    <div id='title' style={{ color: 'red', background: 'green' }}>
+        <span>hello</span>
+        world
+    </div>
 )
-
 ReactDOM.render(element, document.getElementById('root'));
 ```
 
@@ -220,6 +212,14 @@ export default ReactDOM;
 #### 3.1.1 `src/index.js`
 
 ``` js
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-02-24 22:14:49
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index.js
+ */
 import React from './react';
 import ReactDOM from './react-dom';
 /**
@@ -227,86 +227,138 @@ import ReactDOM from './react-dom';
  * 2.组件必须在使用前先定义
  * 3.组件的返回值只能有一个根元素
  */
-function FunctionComponent(props) {
-    return ( <
-            div className = 'title'
-            style = {
-                {
-                    background: 'green',
-                    color: 'red'
-                }
-            } >
-            <
-            span > {
-                props.name
-            } < /span> {
-            props.children
-        } <
-        /div>
-)
+function FunctionComponent(props){
+  return (
+    <div className='title' style={{background:'green',color:'red'}}>
+      <span>{props.name}</span>
+      {props.children}
+    </div>
+  )
 }
 
-ReactDOM.render( < FunctionComponent name = '张三' >
-    <
-    spam > , 你好 < /spam> < /
-    FunctionComponent > , document.getElementById('root'));
+ReactDOM.render(<FunctionComponent name='张三'>
+  <spam>,你好</spam>
+</FunctionComponent>, document.getElementById('root'));
 ```
 
 #### 3.1.2. 经过babel转译
 
-``` js
+```react
 function FunctionComponent(props) {
-    return ( <
-            div className = 'title'
-            style = {
-                {
-                    background: 'green',
-                    color: 'red'
-                }
-            } >
-            <
-            span > {
-                props.name
-            } < /span> {
-            props.children
-        } <
-        /div>
-)
+  return React.createElement("div", {
+    className: "title",
+    style: {
+      background: 'green',
+      color: 'red'
+    }
+  }, React.createElement("span", null, props.name), props.children);
 }
 
-ReactDOM.render( < FunctionComponent name = '张三' >
-    <
-    spam > , 你好 < /spam> < /
-    FunctionComponent > , document.getElementById('root'));
+ReactDOM.render( React.createElement(FunctionComponent, {
+  name: "\u5F20\u4E09"
+}, React.createElement("spam", null, ",\u4F60\u597D")), document.getElementById('root'));
 ```
 
 ### 3.1.3. `react-dom` 修改
 
-* createDOM方法修改
+```js
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:34:32
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-02-24 23:01:02
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/react-dom.js
+ */
 
-``` js
-//创建真实DOM
-let dom;
-if (typeof type === 'function') { //自定义函数组件
-    return mountFunctionComponent(vdom);
-} else { //原生组件
-    dom = document.createElement(type);
+/**
+ * 给跟容器挂载的时候
+ * @param {*} vdom 需要渲染的虚拟DOM
+ * @param {*} container 容器
+ */
+function render(vdom, container) {
+    const dom = createDOM(vdom);
+    //挂载真实DOM
+    container.appendChild(dom);
 }
-```
 
-* 新增mountFunctionComponent方法
+/**
+ * 创建证实DOM
+ * @param {*} vdom 虚拟DOM
+ */
+function createDOM(vdom) {
+    if (typeof vdom === 'string' || typeof vdom === 'number') {//vdom是字符串或者数组
+        return document.createTextNode(vdom);
+    }
+    const { 
+        type, 
+        props } = vdom;
+    //创建真实DOM
+    let dom;
++    if (typeof type === 'function') {//自定义函数组件
++        return mountFunctionComponent(vdom);
++    } else {//原生组件
++        dom = document.createElement(type);
++    }
+    //使用虚拟DOM的属性更新刚创建出来的真实DOM的属性
+    updateProps(dom, props);
+    //儿子是一个文本
+    if (typeof props.children === 'string' || typeof props.children === 'number') {
+        dom.textContent = props.children
+    } else if (typeof props.children === 'object' && props.children.type) {//只有一个儿子，并且是虚拟DOM
+        render(props.children, dom);//把儿子挂载的自己身上
+    } else if (Array.isArray(props.children)) {//有多个儿子
+        reconcileChildren(props.children, dom);
+    } else {
+        document.textContent = props.children ? props.children.toString() : ''
+    }
+    return dom;
+}
 
-``` js
 /**
  * 把一个类型为自定义函数组件的虚拟DOM转换为一个真实DOM并返回
  * @param {*} vdom 类型为自定义函数组件的虚拟DOM
  */
-function mountFunctionComponent(vdom) {
-    const {
-        type: FunctionComponent,
-        props
-    } = vdom;
-    const renderVdom = FunctionComponent(props);
-    return createDOM(renderVdom);
++ function mountFunctionComponent(vdom) {
++    const { type: FunctionComponent, props } = vdom;
++    const renderVdom = FunctionComponent(props);
++    return createDOM(renderVdom);
++ }
+
+/**
+ * 
+ * @param {*} childrenVdom 孩子门的虚拟DOM
+ * @param {*} parentDOM 要挂载到的真实DOM
+ */
+function reconcileChildren(childrenVdom, parentDOM) {
+    for (let i = 0; i < childrenVdom.length; i++) {
+        const child = childrenVdom[i];
+        render(child, parentDOM);//把儿子挂载的自己身上
+    }
 }
+/**
+ * 使用虚拟DOM的属性更新刚创建出来的真实DOM的属性
+ * @param {*} dom 真实DOM
+ * @param {*} props 虚拟DOM属性
+ */
+function updateProps(dom, props) {
+    for (const key in props) {
+        if (key === 'children') continue;//单独处理，不再此处处理
+        if (key === 'style') {
+            const styleObj = props.style;
+            for (const attr in styleObj) {
+                dom.style[attr] = styleObj[attr];
+            }
+        } else {//在JS中定义class使用的是className，所以不要改
+            dom[key] = props[key];
+        }
+    }
+}
+
+const ReactDOM = {
+    render
+}
+
+export default ReactDOM;
 ```
+

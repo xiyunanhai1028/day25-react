@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-24 22:46:03
+ * @LastEditTime: 2021-02-24 23:50:13
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -22,15 +22,21 @@ function render(vdom, container) {
  * 创建证实DOM
  * @param {*} vdom 虚拟DOM
  */
-function createDOM(vdom) {
+export function createDOM(vdom) {
     if (typeof vdom === 'string' || typeof vdom === 'number') {//vdom是字符串或者数组
         return document.createTextNode(vdom);
     }
-    const { type, props } = vdom;
+    const { 
+        type, 
+        props } = vdom;
     //创建真实DOM
     let dom;
     if (typeof type === 'function') {//自定义函数组件
-        return mountFunctionComponent(vdom);
+        if(type.isReactComponent){//类组件
+            return mountClassComponent(vdom);
+        }else{//函数组件
+            return mountFunctionComponent(vdom);
+        }
     } else {//原生组件
         dom = document.createElement(type);
     }
@@ -46,6 +52,23 @@ function createDOM(vdom) {
     } else {
         document.textContent = props.children ? props.children.toString() : ''
     }
+    return dom;
+}
+
+/**
+ * 把一个类型为自定义类组件的虚拟DOM转化为一个真实DOM并返回
+ * @param {*} vdom 类型为自定义类组件的虚拟DOM
+ */
+function mountClassComponent(vdom){
+    const {type:Clazz,props}=vdom;
+    //获取类的实例
+    const classInstance=new Clazz(props);
+    //获取虚拟DOM
+    const renderVdom=classInstance.render();
+    //获取真实DOM
+    const dom=createDOM(renderVdom);
+    //将真实dom挂到实例上上
+    classInstance.dom=dom;
     return dom;
 }
 
@@ -83,7 +106,9 @@ function updateProps(dom, props) {
             for (const attr in styleObj) {
                 dom.style[attr] = styleObj[attr];
             }
-        } else {//在JS中定义class使用的是className，所以不要改
+        } else if(key.startsWith('on')){//onClick=>onclick
+            dom[key.toLocaleLowerCase()]=props[key];
+        }else {//在JS中定义class使用的是className，所以不要改
             dom[key] = props[key];
         }
     }

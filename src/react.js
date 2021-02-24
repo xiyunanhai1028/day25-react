@@ -2,11 +2,11 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-24 19:29:46
+ * @LastEditTime: 2021-02-24 23:36:49
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
-
+import Component from './Component';
 /**
  * 
  * @param {*} type 元素类型
@@ -31,6 +31,7 @@ function createElement(type, config, children) {
 }
 
 const React = {
-    createElement
+    createElement,
+    Component
 }
 export default React;

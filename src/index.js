@@ -2,26 +2,35 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:18:22
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-24 22:14:49
+ * @LastEditTime: 2021-02-24 23:37:02
  * @Modified By: dfh
  * @FilePath: /day25-react/src/index.js
  */
 import React from './react';
 import ReactDOM from './react-dom';
 /**
- * 1.组件名称必须以大写字母开头
- * 2.组件必须在使用前先定义
- * 3.组件的返回值只能有一个根元素
+ * 类组件
+ * props，是父组件给的，不能改变，只读的
+ * state,状态对象
  */
-function FunctionComponent(props){
-  return (
-    <div className='title' style={{background:'green',color:'red'}}>
-      <span>{props.name}</span>
-      {props.children}
-    </div>
-  )
-}
 
-ReactDOM.render(<FunctionComponent name='张三'>
-  <spam>,你好</spam>
-</FunctionComponent>, document.getElementById('root'));
+class Counter extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { num: 0 }
+  }
+
+  handlerClick = () => {
+    this.setState({ num: this.state.num + 2 });
+  }
+
+  render() {
+    return (
+      <div>
+        <p>{this.props.name}:{this.state.num}</p>
+        <button onClick={this.handlerClick}>加2</button>
+      </div>
+    )
+  }
+}
+ReactDOM.render(<Counter name='张三' />, document.getElementById('root'));
