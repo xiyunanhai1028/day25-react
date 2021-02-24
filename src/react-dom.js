@@ -2,10 +2,11 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-24 22:41:56
+ * @LastEditTime: 2021-02-24 22:46:03
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
+
 /**
  * 给跟容器挂载的时候
  * @param {*} vdom 需要渲染的虚拟DOM
@@ -22,28 +23,40 @@ function render(vdom, container) {
  * @param {*} vdom 虚拟DOM
  */
 function createDOM(vdom) {
-    if (typeof vdom === 'string' || typeof vdom === 'number') { //vdom是字符串或者数组
+    if (typeof vdom === 'string' || typeof vdom === 'number') {//vdom是字符串或者数组
         return document.createTextNode(vdom);
     }
-    const {
-        type,
-        props
-    } = vdom;
+    const { type, props } = vdom;
     //创建真实DOM
-    const dom = document.createElement(type);
+    let dom;
+    if (typeof type === 'function') {//自定义函数组件
+        return mountFunctionComponent(vdom);
+    } else {//原生组件
+        dom = document.createElement(type);
+    }
     //使用虚拟DOM的属性更新刚创建出来的真实DOM的属性
     updateProps(dom, props);
     //儿子是一个文本
     if (typeof props.children === 'string' || typeof props.children === 'number') {
         dom.textContent = props.children
-    } else if (typeof props.children === 'object' && props.children.type) { //只有一个儿子，并且是虚拟DOM
-        render(props.children, dom); //把儿子挂载的自己身上
-    } else if (Array.isArray(props.children)) { //有多个儿子
+    } else if (typeof props.children === 'object' && props.children.type) {//只有一个儿子，并且是虚拟DOM
+        render(props.children, dom);//把儿子挂载的自己身上
+    } else if (Array.isArray(props.children)) {//有多个儿子
         reconcileChildren(props.children, dom);
     } else {
         document.textContent = props.children ? props.children.toString() : ''
     }
     return dom;
+}
+
+/**
+ * 把一个类型为自定义函数组件的虚拟DOM转换为一个真实DOM并返回
+ * @param {*} vdom 类型为自定义函数组件的虚拟DOM
+ */
+function mountFunctionComponent(vdom) {
+    const { type: FunctionComponent, props } = vdom;
+    const renderVdom = FunctionComponent(props);
+    return createDOM(renderVdom);
 }
 
 /**
@@ -54,7 +67,7 @@ function createDOM(vdom) {
 function reconcileChildren(childrenVdom, parentDOM) {
     for (let i = 0; i < childrenVdom.length; i++) {
         const child = childrenVdom[i];
-        render(child, parentDOM); //把儿子挂载的自己身上
+        render(child, parentDOM);//把儿子挂载的自己身上
     }
 }
 /**
@@ -64,13 +77,13 @@ function reconcileChildren(childrenVdom, parentDOM) {
  */
 function updateProps(dom, props) {
     for (const key in props) {
-        if (key === 'children') continue; //单独处理，不再此处处理
+        if (key === 'children') continue;//单独处理，不再此处处理
         if (key === 'style') {
             const styleObj = props.style;
             for (const attr in styleObj) {
                 dom.style[attr] = styleObj[attr];
             }
-        } else { //在JS中定义class使用的是className，所以不要改
+        } else {//在JS中定义class使用的是className，所以不要改
             dom[key] = props[key];
         }
     }
