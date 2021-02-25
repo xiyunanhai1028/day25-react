@@ -2,10 +2,12 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-24 23:50:13
+ * @LastEditTime: 2021-02-25 16:25:41
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
+
+ import {addEvent} from './event';
 
 /**
  * 给跟容器挂载的时候
@@ -107,7 +109,8 @@ function updateProps(dom, props) {
                 dom.style[attr] = styleObj[attr];
             }
         } else if(key.startsWith('on')){//onClick=>onclick
-            dom[key.toLocaleLowerCase()]=props[key];
+            // dom[key.toLocaleLowerCase()]=props[key];
+            addEvent(dom,key.toLocaleLowerCase(),props[key]);
         }else {//在JS中定义class使用的是className，所以不要改
             dom[key] = props[key];
         }
