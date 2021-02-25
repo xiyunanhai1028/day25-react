@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-25 16:25:41
+ * @LastEditTime: 2021-02-25 20:21:02
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -18,6 +18,8 @@ function render(vdom, container) {
     const dom = createDOM(vdom);
     //挂载真实DOM
     container.appendChild(dom);
+    //调用生命周期方法componentDidMount
+    dom.componentDidMount&&dom.componentDidMount();
 }
 
 /**
@@ -65,10 +67,18 @@ function mountClassComponent(vdom){
     const {type:Clazz,props}=vdom;
     //获取类的实例
     const classInstance=new Clazz(props);
+    //调用生命周期方法componentWillMount
+    if(classInstance.componentWillMount){
+        classInstance.componentWillMount();
+    }
     //获取虚拟DOM
     const renderVdom=classInstance.render();
     //获取真实DOM
     const dom=createDOM(renderVdom);
+    
+    if(classInstance.componentDidMount){
+        dom.componentDidMount=classInstance.componentDidMount;
+    }
     //将真实dom挂到实例上上
     classInstance.dom=dom;
     return dom;

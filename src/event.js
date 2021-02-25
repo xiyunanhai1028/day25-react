@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-25 15:54:59
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-25 16:13:47
+ * @LastEditTime: 2021-02-25 16:54:01
  * @Modified By: dfh
  * @FilePath: /day25-react/src/event.js
  */
@@ -35,13 +35,17 @@ let syntheticEvent={}
  */
 function dispatchEvent(event){
     //target事件源button ,type类型click
-    const {target,type}=event;
+    let {target,type}=event;
     const eventType=`on${type}`;
     updateQueue.isBatchingUpdate=true;//设置为批量更新模式
     createSyntheticEvent(event);
-    const {store}=target;
-    const listener=store&&store[eventType];
-    listener&&listener.call(target,syntheticEvent);
+    while(target){//事件冒泡
+        const {store}=target;
+        const listener=store&&store[eventType];
+        listener&&listener.call(target,syntheticEvent);
+        target=target.parentNode;
+    }
+    
     //syntheticEvent使用后清空
     for (const key in syntheticEvent) {
         syntheticEvent[key]=null;

@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 23:34:42
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-25 15:53:51
+ * @LastEditTime: 2021-02-25 20:35:50
  * @Modified By: dfh
  * @FilePath: /day25-react/src/Component.js
  */
@@ -35,6 +35,11 @@ class Updater {
     addState(partialState, cb) {
         this.pendingStates.push(partialState);
         typeof cb === 'function' && this.cbs.push(cb);
+        this.emitUpdate();
+    }
+
+    //一个组件不管属性变了，还是状态变了，都会更新
+    emitUpdate(newProps){
         if (updateQueue.isBatchingUpdate) {//当前处于批量更新模式，先缓存updater
             updateQueue.updaters.add(this);//本次setState调用结束
         } else {//当前处于非批量更新模式，执行更新
@@ -45,10 +50,11 @@ class Updater {
     updateClassComponent() {
         const { classInstance, pendingStates, cbs } = this;
         if (pendingStates.length > 0) {//有setState
-            classInstance.state = this.getState();//计算新状态
-            classInstance.forceUpdate();
-            cbs.forEach(cb=>cb());
-            cbs.length=0;
+            shouldUpdate(classInstance,this.getState())
+            // classInstance.state = this.getState();//计算新状态
+            // classInstance.forceUpdate();
+            // cbs.forEach(cb=>cb());
+            // cbs.length=0;
         }
     }
 
@@ -65,6 +71,21 @@ class Updater {
         pendingStates.length = 0;//清空数组
         return state;
     }
+}
+
+/**
+ * 判断组件是否需要更新
+ * @param {*} classInstance 类组件实例
+ * @param {*} newState 新状态
+ */
+function shouldUpdate(classInstance,newState){
+    //不管组件要不要更新，组件的state一定会改变
+    classInstance.state=newState;
+    //如果有这个方法，并且这个方法的返回值为false，则不需要继续向下更新了，否则就更新
+    if(classInstance.shouldComponentUpdate&&!classInstance.shouldComponentUpdate(classInstance.props,newState)){
+        return;
+    }
+    classInstance.forceUpdate()
 }
 class Component {
     //用来判断是类组件
@@ -85,6 +106,8 @@ class Component {
     }
 
     forceUpdate() {
+        //执行生命周期方法componentWillUpdate
+        this.componentWillUpdate&&this.componentWillUpdate();
         const newVdom = this.render();
         updateClassComponent(this, newVdom);
     }
@@ -99,6 +122,8 @@ function updateClassComponent(classInstance, newVdom) {
     const newDOM = createDOM(newVdom);
     const oldDOM = classInstance.dom;
     oldDOM.parentNode.replaceChild(newDOM, oldDOM);
+    //调用生命周期方法componentDidUpdate
+    classInstance.componentDidUpdate&&classInstance.componentDidUpdate();
     classInstance.dom = newDOM;
 }
 export default Component;
