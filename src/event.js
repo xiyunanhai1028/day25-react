@@ -2,11 +2,11 @@
  * @Author: dfh
  * @Date: 2021-02-25 15:54:59
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-25 16:54:01
+ * @LastEditTime: 2021-02-28 15:59:27
  * @Modified By: dfh
  * @FilePath: /day25-react/src/event.js
  */
-import {updateQueue} from './Component';
+import { updateQueue } from './Component';
 
 /**
  * 给真实DOM添加事件处理函数
@@ -19,37 +19,38 @@ import {updateQueue} from './Component';
  * @param {*} eventType 事件类型
  * @param {*} listener 监听函数
  */
-export function addEvent(dom,eventType,listener){
-    const store=dom.store||(dom.store={});
-    store[eventType]=listener;//store.onclick=handlerClick
-    if(!document[eventType]){
+export function addEvent(dom, eventType, listener) {
+    const store = dom.store || (dom.store = {});
+    store[eventType] = listener;//store.onclick=handlerClick
+    if (!document[eventType]) {
         //事件委托，不管你给哪个DOM元素上绑事件，最后都统一代理到document上去了
-        document[eventType]=dispatchEvent;//document.onclick=dispatchEvent
+        document[eventType] = dispatchEvent;//document.onclick=dispatchEvent
     }
 }
 
-let syntheticEvent={}
+let syntheticEvent = {}
 /**
  * 
  * @param {*} event 原生event
  */
-function dispatchEvent(event){
+function dispatchEvent(event) {
     //target事件源button ,type类型click
-    let {target,type}=event;
-    const eventType=`on${type}`;
-    updateQueue.isBatchingUpdate=true;//设置为批量更新模式
+    let { target, type } = event;
+    const eventType = `on${type}`;
+    updateQueue.isBatchingUpdate = true;//设置为批量更新模式
     createSyntheticEvent(event);
-    while(target){//事件冒泡
-        const {store}=target;
-        const listener=store&&store[eventType];
-        listener&&listener.call(target,syntheticEvent);
-        target=target.parentNode;
+    while (target) {//事件冒泡
+        const { store } = target;
+        const listener = store && store[eventType];
+        listener && listener.call(target, syntheticEvent);
+        target = target.parentNode;
     }
-    
+
     //syntheticEvent使用后清空
     for (const key in syntheticEvent) {
-        syntheticEvent[key]=null;
+        syntheticEvent[key] = null;
     }
+    updateQueue.isBatchingUpdate = false;
     updateQueue.batchUpdate();//批量更新
 }
 
@@ -57,8 +58,8 @@ function dispatchEvent(event){
  * 将元素事件都拷贝到syntheticEvent上
  * @param {*} nativeEvent 元素事件
  */
-function createSyntheticEvent(nativeEvent){
+function createSyntheticEvent(nativeEvent) {
     for (const key in nativeEvent) {
-        syntheticEvent[key]=nativeEvent[key];
+        syntheticEvent[key] = nativeEvent[key];
     }
 }

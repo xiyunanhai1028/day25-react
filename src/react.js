@@ -2,11 +2,12 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-24 23:36:49
+ * @LastEditTime: 2021-02-28 16:22:11
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
 import Component from './Component';
+import { wrapToVdom } from './utils';
 /**
  * 
  * @param {*} type 元素类型
@@ -21,9 +22,10 @@ function createElement(type, config, children) {
     let props = { ...config };
 
     if (arguments.length > 3) {//children是一个数组
-        children = Array.prototype.slice.call(arguments, 2);
+        props.children = Array.prototype.slice.call(arguments, 2).map(wrapToVdom);
+    } else {
+        props.children = wrapToVdom(children);
     }
-    props.children = children;
     return {
         type,
         props

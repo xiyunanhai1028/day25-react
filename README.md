@@ -966,17 +966,11 @@ function createSyntheticEvent(nativeEvent){
 
 ### 6.类组件生命周期
 
-#### 6.1.实例1
+#### 6.1.基本生命周期实现
+
+##### 6.1.1.实例
 
 ```javascript
-/*
- * @Author: dfh
- * @Date: 2021-02-24 18:18:22
- * @LastEditors: dfh
- * @LastEditTime: 2021-02-25 19:37:17
- * @Modified By: dfh
- * @FilePath: /day25-react/src/index.js
- */
 import React from 'react';
 import ReactDOM from 'react-dom';
 
@@ -1069,4 +1063,823 @@ ReactDOM.render(<Counter name='张三' />, document.getElementById('root'));
 + Counter 3.render 生成虚拟DOM
 + Counter 7.componentDidUpdate 组件更新完成
 ```
+
+##### 6.1.2`src/react-dom.js`
+
+```javascript
+ import {addEvent} from './event';
+
+/**
+ * 给跟容器挂载的时候
+ * @param {*} vdom 需要渲染的虚拟DOM
+ * @param {*} container 容器
+ */
+function render(vdom, container) {
+    const dom = createDOM(vdom);
+    //挂载真实DOM
+    container.appendChild(dom);
++   //调用生命周期方法componentDidMount
++   dom.componentDidMount&&dom.componentDidMount();
+}
+
+/**
+ * 创建证实DOM
+ * @param {*} vdom 虚拟DOM
+ */
+export function createDOM(vdom) {
+    if (typeof vdom === 'string' || typeof vdom === 'number') {//vdom是字符串或者数组
+        return document.createTextNode(vdom);
+    }
+    const { 
+        type, 
+        props } = vdom;
+    //创建真实DOM
+    let dom;
+    if (typeof type === 'function') {//自定义函数组件
+        if(type.isReactComponent){//类组件
+            return mountClassComponent(vdom);
+        }else{//函数组件
+            return mountFunctionComponent(vdom);
+        }
+    } else {//原生组件
+        dom = document.createElement(type);
+    }
+    //使用虚拟DOM的属性更新刚创建出来的真实DOM的属性
+    updateProps(dom, props);
+    //儿子是一个文本
+    if (typeof props.children === 'string' || typeof props.children === 'number') {
+        dom.textContent = props.children
+    } else if (typeof props.children === 'object' && props.children.type) {//只有一个儿子，并且是虚拟DOM
+        render(props.children, dom);//把儿子挂载的自己身上
+    } else if (Array.isArray(props.children)) {//有多个儿子
+        reconcileChildren(props.children, dom);
+    } else {
+        document.textContent = props.children ? props.children.toString() : ''
+    }
+    return dom;
+}
+
+/**
+ * 把一个类型为自定义类组件的虚拟DOM转化为一个真实DOM并返回
+ * @param {*} vdom 类型为自定义类组件的虚拟DOM
+ */
+function mountClassComponent(vdom){
+    const {type:Clazz,props}=vdom;
+    //获取类的实例
+    const classInstance=new Clazz(props);
++   //调用生命周期方法componentWillMount
++   if(classInstance.componentWillMount){
++       classInstance.componentWillMount();
++   }
+    //获取虚拟DOM
+    const renderVdom=classInstance.render();
+    //获取真实DOM
+    const dom=createDOM(renderVdom);
+    
++   if(classInstance.componentDidMount){
++       dom.componentDidMount=classInstance.componentDidMount;
++   }
+    //将真实dom挂到实例上上
+    classInstance.dom=dom;
+    return dom;
+}
+
+/**
+ * 把一个类型为自定义函数组件的虚拟DOM转换为一个真实DOM并返回
+ * @param {*} vdom 类型为自定义函数组件的虚拟DOM
+ */
+function mountFunctionComponent(vdom) {
+    const { type: FunctionComponent, props } = vdom;
+    const renderVdom = FunctionComponent(props);
+    return createDOM(renderVdom);
+}
+
+/**
+ * 
+ * @param {*} childrenVdom 孩子门的虚拟DOM
+ * @param {*} parentDOM 要挂载到的真实DOM
+ */
+function reconcileChildren(childrenVdom, parentDOM) {
+    for (let i = 0; i < childrenVdom.length; i++) {
+        const child = childrenVdom[i];
+        render(child, parentDOM);//把儿子挂载的自己身上
+    }
+}
+/**
+ * 使用虚拟DOM的属性更新刚创建出来的真实DOM的属性
+ * @param {*} dom 真实DOM
+ * @param {*} props 虚拟DOM属性
+ */
+function updateProps(dom, props) {
+    for (const key in props) {
+        if (key === 'children') continue;//单独处理，不再此处处理
+        if (key === 'style') {
+            const styleObj = props.style;
+            for (const attr in styleObj) {
+                dom.style[attr] = styleObj[attr];
+            }
+        } else if(key.startsWith('on')){//onClick=>onclick
+            // dom[key.toLocaleLowerCase()]=props[key];
+            addEvent(dom,key.toLocaleLowerCase(),props[key]);
+        }else {//在JS中定义class使用的是className，所以不要改
+            dom[key] = props[key];
+        }
+    }
+}
+
+const ReactDOM = {
+    render
+}
+
+export default ReactDOM;
+```
+
+##### 6.1.3.`src/Component.js`
+
+```javascript
+import { createDOM } from './react-dom'
+
+//更新队列
+export let updateQueue = {
+    isBatchingUpdate: false,//当前是否处于批量更新模式
+    updaters: new Set(),
+    batchUpdate(){//批量更新
+        for(let updater of this.updaters){
+            updater.updateClassComponent();
+        }
+        this.isBatchingUpdate=false;
+    }
+}
+//更新器
+class Updater {
+    constructor(classInstance) {
+        this.classInstance = classInstance;//类组件的实例
+        this.pendingStates = [];//等待生效的状态，可能是一个对象，也可能是一个函数
+        this.cbs = [];//存放回调
+    }
+
+    /**
+     * 
+     * @param {*} partialState 等待更新生效的状态
+     * @param {*} cb 状态更新的回调
+     */
+    addState(partialState, cb) {
+        this.pendingStates.push(partialState);
+        typeof cb === 'function' && this.cbs.push(cb);
++       this.emitUpdate();
+    }
+
+    //一个组件不管属性变了，还是状态变了，都会更新
++  emitUpdate(newProps){
++       if (updateQueue.isBatchingUpdate) {//当前处于批量更新模式，先缓存updater
++           updateQueue.updaters.add(this);//本次setState调用结束
++       } else {//当前处于非批量更新模式，执行更新
++           this.updateClassComponent();//直接更新组件
++       }
++   }
+
+    updateClassComponent() {
+        const { classInstance, pendingStates, cbs } = this;
+        if (pendingStates.length > 0) {//有setState
++           shouldUpdate(classInstance,this.getState())
+            // classInstance.state = this.getState();//计算新状态
+            // classInstance.forceUpdate();
+            // cbs.forEach(cb=>cb());
+            // cbs.length=0;
+        }
+    }
+
+    getState() {//计算新状态
+        const { classInstance, pendingStates } = this;
+        let { state } = classInstance;//获取老状态
+        pendingStates.forEach(newState => {
+            //newState可能是对象，也可能是函数,对象setState的两种方式
+            if (typeof newState === 'function') {
+                newState = newState(state);
+            }
+            state = { ...state, ...newState };
+        })
+        pendingStates.length = 0;//清空数组
+        return state;
+    }
+}
+
+/**
+ * 判断组件是否需要更新
+ * @param {*} classInstance 类组件实例
+ * @param {*} newState 新状态
+ */
++ function shouldUpdate(classInstance,newState){
++   //不管组件要不要更新，组件的state一定会改变
++   classInstance.state=newState;
++   //如果有这个方法，并且这个方法的返回值为false，则不需要继续向下更新了，否则就更新
++   if(classInstance.shouldComponentUpdate&&!classInstance.shouldComponentUpdate(classInstance.props,newState)){
++       return;
++   }
++   classInstance.forceUpdate()
++ }
+class Component {
+    //用来判断是类组件
+    static isReactComponent = true;
+    constructor(props) {
+        this.props = props;
+        this.state = {};
+        //每个类组件都有一个更新器
+        this.updater = new Updater(this);
+    }
+
+    setState(partialState, cb) {
+        this.updater.addState(partialState, cb);
+        // const { state } = this;
+        // this.state = { ...state, ...partialState };
+        // const newVdom = this.render();
+        // mountClassComponent(this, newVdom);
+    }
+
+    forceUpdate() {
++       //执行生命周期方法componentWillUpdate
++       this.componentWillUpdate&&this.componentWillUpdate();
+        const newVdom = this.render();
+        updateClassComponent(this, newVdom);
+    }
+}
+
+/**
+ * 用新的真实dom替换老得真实DOM
+ * @param {*} classInstance 类组件实例
+ * @param {*} newVdom 新的虚拟DOM
+ */
+function updateClassComponent(classInstance, newVdom) {
+    const newDOM = createDOM(newVdom);
+    const oldDOM = classInstance.dom;
+    oldDOM.parentNode.replaceChild(newDOM, oldDOM);
++   //调用生命周期方法componentDidUpdate
++   classInstance.componentDidUpdate&&classInstance.componentDidUpdate();
+    classInstance.dom = newDOM;
+}
+export default Component;
+```
+
+#### 6.2.子组件生命周期
+
+##### 6.2.1.实例
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+class Counter extends React.Component {
+  static defaultProps = {
+    name: '计数器：'
+  }
+
+  constructor(props) {
+    super(props)
+    this.state = { num: 0 }
+    console.log('Counter 1.constructor 属性，状态初始化')
+  }
+
+  componentWillMount() {
+    console.log('Counter 2.componentWillMount 组件将要挂载')
+  }
+
+  componentDidMount() {
+    console.log('Counter 4.componentDidMount 组件挂载完成')
+  }
+
+  handlerClick = () => {
+    this.setState({ num: this.state.num + 1 });
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    console.log('Counter 5.shouldComponentUpdate 询问组件是否需要更新？')
+    return nextState.num % 2 === 0;//num为2的倍数更是视图，状态一致会更新
+  }
+
+  componentWillUpdate() {
+    console.log('Counter 6.componentWillUpdate 组件将要更新')
+  }
+
+  componentDidUpdate() {
+    console.log('Counter 7.componentDidUpdate 组件更新完成')
+  }
+
+  render() {
+    console.log('Counter 3.render 生成虚拟DOM')
+    return (
+      <div>
+        <p>{this.props.name}:{this.state.num}</p>
+        {this.state.num===4?null:<ChildCounter num={this.state.num}/>}
+        <button onClick={this.handlerClick}>加2</button>
+      </div>
+    )
+  }
+}
+
+class ChildCounter extends React.Component {
+  constructor(props){
+    super(props);
+    console.log('ChildCounter 1.constructor 属性，状态初始化')
+  }
+  componentWillMount() {
+    console.log('ChildCounter 2.componentWillMount 组件将要挂载')
+  }
+
+  componentDidMount() {
+    console.log('ChildCounter 4.componentDidMount 组件挂载完成')
+  }
+
+  componentWillReceiveProps(newProps){//第一次不会执行，之后属性更新时会执行
+    console.log('ChildCounter 5.componentWillReceiveProps 组件将要接收新的props')
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    console.log('ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？')
+    return nextProps.num % 3 === 0;//num为3的倍数更是视图，状态一致会更新
+  }
+
+  componentWillUpdate() {
+    console.log('ChildCounter 7.componentWillUpdate 组件将要更新')
+  }
+
+  componentDidUpdate() {
+    console.log('ChildCounter 8.componentDidUpdate 组件更新完成')
+  }
+
+  componentWillUnmount(){
+    console.log('ChildCounter 9.componentWillUnmount 组件将被卸载')
+  }
+
+  render() {
+    console.log('ChildCounter 3.render 生成虚拟DOM')
+    return <div>{this.props.num}</div>
+  }
+}
+ReactDOM.render(<Counter name='张三' />, document.getElementById('root'));
+```
+
+日志分心：
+
+- 初始化日志
+
+> 初始化时分别会走：`父组件constructor`->`父组件componentWillMount`->`父组件render`->`子组件constructor`->`子组件componentWillMount`->`子组件render`->`子组件componentDidMount`->`父组件componentDidMount`
+
+```javascript
+Counter 1.constructor 属性，状态初始化
+Counter 2.componentWillMount 组件将要挂载
+Counter 3.render 生成虚拟DOM
+ChildCounter 1.constructor 属性，状态初始化
+ChildCounter 2.componentWillMount 组件将要挂载
+ChildCounter 3.render 生成虚拟DOM
+ChildCounter 4.componentDidMount 组件挂载完成
+Counter 4.componentDidMount 组件挂载完成
+```
+
+- 第一次点击
+
+> 第一次点击时，父组件走了`shouldComponentUpdate`询问是否需要更新组件，此时`num=1`,返回的false，父组件不更新，子组件也不会更新
+
+```javascript
+  Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？ 
+```
+
+- 第二次点击
+
+> 第二次点击时，父组件走`shouldComponentUpdate`，此时`num=2`是2的倍数，返回的是true，父组件需要更新，调用`componentWillUpdate`父组件将要更新,从新`render`，此时子组件的`componentWillReceiveProps`被调用，子组件将要接收新的props，接着子组件的`shouldComponentUpdate`被调用,询问子组件是否需要更新，此时`num=2`,不是3的倍数，返回的是false，子组件不更新，接着执行`componentDidUpdate`父组件更新完成
+
+```javascript
+  Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 6.componentWillUpdate 组件将要更新
++ Counter 3.render 生成虚拟DOM
++ ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
++ ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 7.componentDidUpdate 组件更新完成
+```
+
+- 第三次点击
+
+> 第三次点击时，父组件走了`shouldComponentUpdate`询问是否需要更新组件，此时`num=3`,返回的false，父组件不更新，子组件也不会更新
+
+```javascript
+  Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？  
+```
+
+- 第四次点击
+
+> 第四次点击时，父组件走`shouldComponentUpdate`，此时`num=4`是2的倍数，返回的是true，父组件需要更新，调用`componentWillUpdate`父组件将要更新,从新`render`，这是因为`num=4`,`{this.state.num===4?null:<ChildCounter num={this.state.num}/>}`执行后，子组件被卸载，所以子组件走了`componentWillUnmount`，父组件继续执行`componentDidUpdate`
+
+```javascript
+  Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 6.componentWillUpdate 组件将要更新
++ Counter 3.render 生成虚拟DOM
++ ChildCounter 9.componentWillUnmount 组件将被卸载
++ Counter 7.componentDidUpdate 组件更新完成
+```
+
+- 第五次点击
+
+> 第五次点击时父组,件走了`shouldComponentUpdate`询问是否需要更新组件，此时`num=5`,返回的false，父组件不更新，子组件也不会更新
+
+```javascript
+  Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 9.componentWillUnmount 组件将被卸载
+  Counter 7.componentDidUpdate 组件更新完成
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？  
+```
+
+- 第六次点击
+
+> 第六次点击时，父组件走`shouldComponentUpdate`，此时`num=6`是2的倍数，返回的是true，父组件需要更新，调用`componentWillUpdate`父组件将要更新,从新`render`，由于之前在子组件被卸载了，需要重新开始，因为需要执行`子组件constructor`->`子组件componentWillMount`->`子组件render`->`子组件componentDidMount`，再执行`父组件componentDidMount`
+
+```javascript
+ 	Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 9.componentWillUnmount 组件将被卸载
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 6.componentWillUpdate 组件将要更新
++ Counter 3.render 生成虚拟DOM
++ ChildCounter 1.constructor 属性，状态初始化
++ ChildCounter 2.componentWillMount 组件将要挂载
++ ChildCounter 3.render 生成虚拟DOM
++ ChildCounter 4.componentDidMount 组件挂载完成
++ Counter 7.componentDidUpdate 组件更新完成
+```
+
+- 第七次点击
+
+> 第七次点击时父组,件走了`shouldComponentUpdate`询问是否需要更新组件，此时`num=7`,返回的false，父组件不更新，子组件也不会更新
+
+```javascript
+ 	Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 9.componentWillUnmount 组件将被卸载
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 7.componentDidUpdate 组件更新完成
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+```
+
+- 第八次点击
+
+> 第八次点击时父组,父组件走`shouldComponentUpdate`，此时`num=8`是2的倍数，返回的是true，父组件需要更新，调用`componentWillUpdate`父组件将要更新,从新`render`，此时子组件的`componentWillReceiveProps`被调用，子组件将要接收新的props，接着子组件的`shouldComponentUpdate`被调用,询问子组件是否需要更新，此时`num=8`,不是3的倍数，返回的是false，子组件不更新，接着执行`componentDidUpdate`父组件更新完成
+
+```javascript
+ 	Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 9.componentWillUnmount 组件将被卸载
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 6.componentWillUpdate 组件将要更新
++ Counter 3.render 生成虚拟DOM
++ ChildCounter 5.componentWillReceiveProps 询问组件是否需要更新？
++ ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 7.componentDidUpdate 组件更新完成
+```
+
+- 第九次点击
+
+> 第九次点击时父组,件走了`shouldComponentUpdate`询问是否需要更新组件，此时`num=9`,返回的false，父组件不更新，子组件也不会更新
+
+```javascript
+  Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 9.componentWillUnmount 组件将被卸载
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 询问组件是否需要更新？
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+```
+
+- 第十次点击
+
+> 第十次点击时父组，父组件走`shouldComponentUpdate`，此时`num=10`是2的倍数，返回的是true，父组件需要更新，调用`componentWillUpdate`父组件将要更新,从新`render`，此时子组件的`componentWillReceiveProps`被调用，子组件将要接收新的props，接着子组件的`shouldComponentUpdate`被调用,询问子组件是否需要更新，此时`num=10`,不是3的倍数，返回的是false，子组件不更新，接着执行`componentDidUpdate`父组件更新完成
+
+```javascript
+  Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 9.componentWillUnmount 组件将被卸载
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 询问组件是否需要更新？
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 6.componentWillUpdate 组件将要更新
++ Counter 3.render 生成虚拟DOM
++ ChildCounter 5.componentWillReceiveProps 询问组件是否需要更新？
++ ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 7.componentDidUpdate 组件更新完成
+```
+
+- 第十一次点击
+
+> 第十一次点击时父组，件走了`shouldComponentUpdate`询问是否需要更新组件，此时`num=11`,返回的false，父组件不更新，子组件也不会更新
+
+```javascript
+  Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 9.componentWillUnmount 组件将被卸载
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 询问组件是否需要更新？
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 询问组件是否需要更新？
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？  
+```
+
+- 第十二次点击
+
+> 第十二次点击时父组，父组件走`shouldComponentUpdate`，此时`num=12`是2的倍数，返回的是true，父组件需要更新，调用`componentWillUpdate`父组件将要更新,从新`render`，此时子组件的`componentWillReceiveProps`被调用，子组件将要接收新的props，接着子组件的`shouldComponentUpdate`被调用,询问子组件是否需要更新，此时`num=12`,是3的倍数，返回的是true，调用`子组件componentWillUpdate`->`子组件render`->`子组件componentDidUpdate`，接着执行`componentDidUpdate`父组件更新完成
+
+```javascript
+  Counter 1.constructor 属性，状态初始化
+  Counter 2.componentWillMount 组件将要挂载
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 4.componentDidMount 组件挂载完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 组件将要接收新的props
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 9.componentWillUnmount 组件将被卸载
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 1.constructor 属性，状态初始化
+  ChildCounter 2.componentWillMount 组件将要挂载
+  ChildCounter 3.render 生成虚拟DOM
+  ChildCounter 4.componentDidMount 组件挂载完成
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 询问组件是否需要更新？
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 6.componentWillUpdate 组件将要更新
+  Counter 3.render 生成虚拟DOM
+  ChildCounter 5.componentWillReceiveProps 询问组件是否需要更新？
+  ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
+  Counter 7.componentDidUpdate 组件更新完成
+  Counter 5.shouldComponentUpdate 询问组件是否需要更新？  
++ Counter 5.shouldComponentUpdate 询问组件是否需要更新？
++ Counter 6.componentWillUpdate 组件将要更新
++ Counter 3.render 生成虚拟DOM
++ ChildCounter 5.componentWillReceiveProps 询问组件是否需要更新？
++ ChildCounter 6.shouldComponentUpdate 询问组件是否需要更新？
++ ChildCounter 7.componentWillUpdate 组件将要更新
++ ChildCounter 3.render 生成虚拟DO
++ ChildCounter 8.componentDidUpdate 组件更新完成
++ Counter 7.componentDidUpdate 组件更新完成
+```
+
+
 
