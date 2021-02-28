@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:18:22
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-28 17:00:12
+ * @LastEditTime: 2021-03-01 07:22:45
  * @Modified By: dfh
  * @FilePath: /day25-react/src/index.js
  */
@@ -33,7 +33,7 @@ class Counter extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    console.log('Counter 5.shouldComponentUpdate 询问组件是否需要更新？')
+    console.log('Counter 5.shouldComponentUpdate 询问组件是否需要更新？',this.state.num,nextState)
     return nextState.num % 2 === 0;//num为2的倍数更是视图，状态一致会更新
   }
 

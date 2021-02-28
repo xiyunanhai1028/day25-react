@@ -2,22 +2,22 @@
  * @Author: dfh
  * @Date: 2021-02-24 23:34:42
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-28 16:50:53
+ * @LastEditTime: 2021-03-01 07:25:20
  * @Modified By: dfh
  * @FilePath: /day25-react/src/Component.js
  */
-import { compareTwoVdom ,findDOM} from './react-dom'
+import { compareTwoVdom, findDOM } from './react-dom'
 
 //更新队列
 export let updateQueue = {
     isBatchingUpdate: false,//当前是否处于批量更新模式
-    updaters: new Set(),
+    updaters: [],
     batchUpdate() {//批量更新
         for (let updater of this.updaters) {
             updater.updateClassComponent();
         }
         this.isBatchingUpdate = false;
-        this.updaters.length=0;
+        this.updaters.length = 0;
     }
 }
 //更新器
@@ -43,7 +43,7 @@ class Updater {
     emitUpdate(nextProps) {
         this.nextProps = nextProps;//缓存起来
         if (updateQueue.isBatchingUpdate) {//当前处于批量更新模式，先缓存updater
-            updateQueue.updaters.add(this);//本次setState调用结束
+            updateQueue.updaters.push(this);//本次setState调用结束
         } else {//当前处于非批量更新模式，执行更新
             this.updateClassComponent();//直接更新组件
         }
@@ -82,16 +82,23 @@ class Updater {
  * @param {*} newState 新状态
  */
 function shouldUpdate(classInstance, nextProps, newState) {
+    let willUpdate = true;//是否需要更新
+    //如果有这个方法，并且这个方法的返回值为false，则不需要继续向下更新了，否则就更新
+    if (classInstance.shouldComponentUpdate && !classInstance.shouldComponentUpdate(nextProps, newState)) {
+        willUpdate = false;
+    }
+    //如果需要更新，并且组件调用类componentWillUpdate方法
+    if (willUpdate && classInstance.componentWillUpdate) {
+        classInstance.componentWillUpdate();//执行生命周期方法componentWillUpdate
+    }
+    //不管是否需要更新，属性和状态都有改变
     if (nextProps) {
         classInstance.props = nextProps;
     }
     //不管组件要不要更新，组件的state一定会改变
     classInstance.state = newState;
-    //如果有这个方法，并且这个方法的返回值为false，则不需要继续向下更新了，否则就更新
-    if (classInstance.shouldComponentUpdate && !classInstance.shouldComponentUpdate(classInstance.props, newState)) {
-        return;
-    }
-    classInstance.forceUpdate()
+    //如果需要更新，走组件的更新逻辑
+    willUpdate && classInstance.forceUpdate()
 }
 class Component {
     //用来判断是类组件
@@ -108,13 +115,11 @@ class Component {
     }
 
     forceUpdate() {
-        //执行生命周期方法componentWillUpdate
-        this.componentWillUpdate && this.componentWillUpdate();
         const newRenderVdom = this.render();//新的虚拟DOM
         const oldRenderVdom = this.oldRenderVdom;//老得虚拟DOM
         const dom = findDOM(oldRenderVdom);//老得真实DOM
         compareTwoVdom(dom.parentNode, oldRenderVdom, newRenderVdom);
-        this.oldRenderVdom=newRenderVdom;//比较完毕后，重新赋值老的虚拟节点
+        this.oldRenderVdom = newRenderVdom;//比较完毕后，重新赋值老的虚拟节点
         //调用生命周期方法componentDidUpdate
         this.componentDidUpdate && this.componentDidUpdate();
     }
