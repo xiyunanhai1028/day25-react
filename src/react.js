@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 11:30:06
+ * @LastEditTime: 2021-03-01 13:33:21
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
@@ -42,9 +42,27 @@ function createElement(type, config, children) {
 function createRef() {
     return { current: null }
 }
+
+function createContext(initialValue) {
+    Provider._value = initialValue;
+    function Provider(props) {
+        const { value } = props;
+        if (Provider._value) {
+            Object.assign(Provider._value, value)
+        } else {
+            Provider._value = value;
+        }
+        return props.children;
+    }
+    function Consumer(props) {
+        return props.children(Provider._value);
+    }
+    return { Provider, Consumer };
+}
 const React = {
     createElement,
     Component,
-    createRef
+    createRef,
+    createContext
 }
 export default React;

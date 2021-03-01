@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 11:32:14
+ * @LastEditTime: 2021-03-01 13:40:33
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -71,7 +71,10 @@ function mountClassComponent(vdom) {
     const { type: Clazz, props } = vdom;
     //获取类的实例
     const classInstance = new Clazz(props);
-    //让这个类组件的虚拟DOM的classInstance属性指向这个类组件的实例
+    if (Clazz.contextType) {
+        classInstance.context = Clazz.contextType.Provider._value;
+    }
+    //让这个类组件的虚拟DOM的classInstance属性指向这个类组件的实例
     vdom.classInstance = classInstance;
     //调用生命周期方法componentWillMount
     if (classInstance.componentWillMount) {

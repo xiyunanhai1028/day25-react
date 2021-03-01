@@ -2,56 +2,83 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:18:22
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 11:34:06
+ * @LastEditTime: 2021-03-01 13:41:47
  * @Modified By: dfh
  * @FilePath: /day25-react/src/index.js
  */
 import React from './react';
 import ReactDOM from './react-dom';
-
-class Counter extends React.Component {
-  ulRef = React.createRef();//{current:null}
-  constructor(props) {
-    super(props)
-    this.state = { list: [] }
+const PersonContext = React.createContext();
+function getStyle(color) {
+  return {
+    border: `5px solid ${color}`,
+    padding: '5px',
+    marigin: '5px'
+  }
+}
+class Person extends React.Component {
+  state = {
+    color: 'red'
   }
 
-  getSnapshotBeforeUpdate() {
-    return this.ulRef.current.scrollHeight;
-  }
+  changeColor = (color) => this.setState({ color })
 
-  /**
-   * 
-   * @param {*} prevProps 老得props
-   * @param {*} prevState 老得state
-   * @param {*} scrollHeight getSnapshotBeforeUpdate传递的值
-   */
-  componentDidUpdate(prevProps, prevState, scrollHeight) {
-    console.log('本次新增的高度:', this.ulRef.current.scrollHeight - scrollHeight)
+  render() {
+    const value = { color: this.state.color, changeColor: this.changeColor }
+    return <PersonContext.Provider value={value}>
+      <div style={{ ...getStyle(this.state.color), width: '200px' }}>
+        Person
+      <Head />
+        <Body />
+      </div>
+    </PersonContext.Provider>
   }
+}
 
-  handlerClick = () => {
-    const list = this.state.list;
-    list.push(list.length);
-    this.setState({ list });
-  }
+class Head extends React.Component {
+  static contextType = PersonContext;
 
   render() {
     return (
-      <div id={`id-${this.state.num}`}>
-        <button onClick={this.handlerClick}>+</button>
-        <ul ref={this.ulRef}>
-          {this.state.list.map((item, index) => <li key={index}>{index}</li>)}
-        </ul>
+      <div style={getStyle(this.context.color)}>
+        Head
+        <Eye />
       </div>
     )
   }
 }
 
+class Body extends React.Component {
+  static contextType = PersonContext;
 
-ReactDOM.render(<Counter name='张三' />, document.getElementById('root'));
+  render() {
+    return (
+      <div style={getStyle(this.context.color)}>
+        Body
+        <Hand />
+      </div>
+    )
+  }
+}
 
+class Hand extends React.Component {
+  static contextType = PersonContext;
 
+  render() {
+    return (
+      <div style={getStyle(this.context.color)}>
+        Hand
+        <button onClick={() => this.context.changeColor('red')}>变红</button>
+        <button onClick={() => this.context.changeColor('green')}>变绿</button>
+      </div>
+    )
+  }
+}
 
+function Eye() {
+  return <PersonContext.Consumer>
+    {content => <div style={getStyle(content.color)}>Eye</div>}
+  </PersonContext.Consumer>
+}
 
-
+ReactDOM.render(<Person />, document.getElementById('root'));
