@@ -2,83 +2,44 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:18:22
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 13:41:47
+ * @LastEditTime: 2021-03-01 16:20:31
  * @Modified By: dfh
  * @FilePath: /day25-react/src/index.js
  */
-import React from './react';
-import ReactDOM from './react-dom';
-const PersonContext = React.createContext();
-function getStyle(color) {
-  return {
-    border: `5px solid ${color}`,
-    padding: '5px',
-    marigin: '5px'
+import React from 'react';
+import ReactDOM from 'react-dom';
+/**
+ * 高阶组件 有三中应用场景
+ * 1.属性代理
+ */
+const widthLoading = msg => OldComponent => {
+  return class extends React.Component {
+    show = () => {
+      const div = document.createElement('div')
+      div.setAttribute('id', 'load');
+      div.innerHTML = `
+      <p style="position:absolute;top:50%;left:50%;z-index:10;background-color:gray">${msg}</p>
+      `
+      document.body.appendChild(div);
+    }
+
+    hide = () => {
+      document.getElementById('load').remove();
+    }
+    render() {
+      return <OldComponent show={this.show} hide={this.hide} />
+    }
   }
 }
-class Person extends React.Component {
-  state = {
-    color: 'red'
-  }
 
-  changeColor = (color) => this.setState({ color })
-
+@widthLoading('正在加载中...')
+class Hello extends React.Component {
   render() {
-    const value = { color: this.state.color, changeColor: this.changeColor }
-    return <PersonContext.Provider value={value}>
-      <div style={{ ...getStyle(this.state.color), width: '200px' }}>
-        Person
-      <Head />
-        <Body />
-      </div>
-    </PersonContext.Provider>
+    return <div>
+      <p>hello</p>
+      <button onClick={this.props.show}>显示</button>
+      <button onClick={this.props.hide}>隐藏</button>
+    </div>
   }
 }
-
-class Head extends React.Component {
-  static contextType = PersonContext;
-
-  render() {
-    return (
-      <div style={getStyle(this.context.color)}>
-        Head
-        <Eye />
-      </div>
-    )
-  }
-}
-
-class Body extends React.Component {
-  static contextType = PersonContext;
-
-  render() {
-    return (
-      <div style={getStyle(this.context.color)}>
-        Body
-        <Hand />
-      </div>
-    )
-  }
-}
-
-class Hand extends React.Component {
-  static contextType = PersonContext;
-
-  render() {
-    return (
-      <div style={getStyle(this.context.color)}>
-        Hand
-        <button onClick={() => this.context.changeColor('red')}>变红</button>
-        <button onClick={() => this.context.changeColor('green')}>变绿</button>
-      </div>
-    )
-  }
-}
-
-function Eye() {
-  return <PersonContext.Consumer>
-    {content => <div style={getStyle(content.color)}>Eye</div>}
-  </PersonContext.Consumer>
-}
-
-ReactDOM.render(<Person />, document.getElementById('root'));
+ReactDOM.render(<Hello />, document.getElementById('root'));
