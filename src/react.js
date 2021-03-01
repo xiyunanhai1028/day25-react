@@ -2,11 +2,12 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 17:21:21
+ * @LastEditTime: 2021-03-01 22:10:00
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
 import Component from './Component';
+import PureComponent from './PureComponent';
 import { wrapToVdom } from './utils';
 /**
  * 
@@ -16,15 +17,15 @@ import { wrapToVdom } from './utils';
  */
 function createElement(type, config, children) {
     let ref, key;
-    if (config) {
-        delete config._source;
-        delete config._self;
+    if(config){
+        delete config.__source;
+        delete config.__self;
         ref = config.ref;
-        key = config.key;
         delete config.ref;
+        key = config.key;
         delete config.key;
     }
-    let props = { ...config };
+   let props = {...config};
 
     if (arguments.length > 3) {//children是一个数组
         props.children = Array.prototype.slice.call(arguments, 2).map(wrapToVdom);
@@ -84,6 +85,7 @@ function cloneElement(oldElement, newProps, ...newChildren) {
 const React = {
     createElement,
     Component,
+    PureComponent,
     createRef,
     createContext,
     cloneElement

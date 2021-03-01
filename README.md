@@ -451,8 +451,8 @@ export default Component;
  */
 function createElement(type, config, children) {
     if (config) {
-        delete config._source;
-        delete config._self;
+        delete config.__source;
+        delete config.__self;
     }
     let props = { ...config };
 
@@ -2355,8 +2355,8 @@ export default ReactDOM;
  */
 function createElement(type, config, children) {
     if (config) {
-        delete config._source;
-        delete config._self;
+        delete config.__source;
+        delete config.__self;
     }
     let props = { ...config };
 
@@ -2983,8 +2983,8 @@ import { wrapToVdom } from './utils';
 function createElement(type, config, children) {
 +   let ref, key;
     if (config) {
-        delete config._source;
-        delete config._self;
+        delete config.__source;
+        delete config.__self;
 +       ref = config.ref;
 +       key = config.key;
 +       delete config.ref;
@@ -3564,8 +3564,8 @@ import { wrapToVdom } from './utils';
 function createElement(type, config, children) {
     let ref, key;
     if (config) {
-        delete config._source;
-        delete config._self;
+        delete config.__source;
+        delete config.__self;
         ref = config.ref;
         key = config.key;
         delete config.ref;
@@ -4081,8 +4081,8 @@ import { wrapToVdom } from './utils';
 function createElement(type, config, children) {
     let ref, key;
     if (config) {
-        delete config._source;
-        delete config._self;
+        delete config.__source;
+        delete config.__self;
         ref = config.ref;
         key = config.key;
         delete config.ref;
@@ -4284,11 +4284,217 @@ ReactDOM.render(<MouseTracker >{
 }</MouseTracker>, document.getElementById('root'));
 ```
 
+#### 10.4.hoc
+
+```react
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-01 19:35:21
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index.js
+ */
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+function widthTracker(OldComponent) {
+  return class MouseTracker extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = { x: 0, y: 0 };
+    }
+
+    handeMouseMove = event => {
+      this.setState({
+        x: event.clientX,
+        y: event.clientY
+      })
+    }
+
+    render() {
+      return <div onMouseMove={this.handeMouseMove}>
+        <OldComponent {...this.state} />
+      </div>
+    }
+  }
+}
+
+function Show(props) {
+  return <>
+    <h1>移动鼠标</h1>
+    <p>当前的鼠标位置是：({props.x},{props.y})</p>
+  </>
+}
+
+const MouseTracker = widthTracker(Show);
+ReactDOM.render(<MouseTracker />, document.getElementById('root'));
+```
+
+
+
 ### 11.shouldComponentUpdate
 
 - 当一个组件的`props`或`state`变更，`React`会将最新返回的元素与之前渲染的元素进行对比，以此决定是否有必要更新真实的DOM，当它们不相同时`React`会更新改DOM
 - 如果渲染的组件非常多时，可以通过覆盖生命周期方法`shouldComponentUpdate`来进行优化
 - `shouldComponentUpdate`方法会在重新渲染前触发。其默认实现是返回true。如果组件不需要更新，可以在`shouldComponentUpdate`中返回false来跳过整个渲染过程。其包括该组件的`render`调用以及之后的操作。
+
+#### 11.1.事例-Component
+
+> 存在的问题：无论点击Number1中的button,还是Number2中的butter，所有的render都会执行
+
+```react
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-01 19:41:39
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index.js
+ */
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+/**
+* 默认情况下，只要状态改变，那么所有的组件不管属性有没有变化都会更新
+*/
+class Counter extends React.Component {
+  state = { num1: 0, num2: 0 }
+
+  addNum1 = () => {
+    this.setState({ num1: this.state.num1 + 1 })
+  }
+
+  addNum2 = () => {
+    this.setState({ num2: this.state.num2 + 1 })
+  }
+
+  render() {
+    console.log('render Counter')
+    return <div>
+      <Number1 num={this.state.num1} add={this.addNum1} />
+      <Number2 num={this.state.num2} add={this.addNum2} />
+    </div>
+  }
+}
+
+class Number1 extends React.Component {
+  render() {
+    console.log('render Number1')
+    return <div>
+      <button onClick={this.props.add}>Number1:{this.props.num}</button>
+    </div>
+  }
+}
+
+class Number2 extends React.Component {
+  render() {
+    console.log('render Number2')
+    return <div>
+      <button onClick={this.props.add}>Number2:{this.props.num}</button>
+    </div>
+  }
+}
+ReactDOM.render(<Counter />, document.getElementById('root'));
+```
+
+#### 11.2.事例-PuerComponent
+
+> 当点击Number1中的按钮时，只走`render Counter`和`render Number1`,但点击Number2中的按钮时只走`render Counter`和`render Number2`
+
+```react
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-01 19:46:48
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index.js
+ */
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+class Counter extends React.Component {
+  state = { num1: 0, num2: 0 }
+
+  addNum1 = () => {
+    this.setState({ num1: this.state.num1 + 1 })
+  }
+
+  addNum2 = () => {
+    this.setState({ num2: this.state.num2 + 1 })
+  }
+
+  render() {
+    console.log('render Counter')
+    return <div>
+      <Number1 num={this.state.num1} add={this.addNum1} />
+      <Number2 num={this.state.num2} add={this.addNum2} />
+    </div>
+  }
+}
+
+class Number1 extends React.PureComponent {
+  render() {
+    console.log('render Number1')
+    return <div>
+      <button onClick={this.props.add}>Number1:{this.props.num}</button>
+    </div>
+  }
+}
+
+class Number2 extends React.PureComponent {
+  render() {
+    console.log('render Number2')
+    return <div>
+      <button onClick={this.props.add}>Number2:{this.props.num}</button>
+    </div>
+  }
+}
+ReactDOM.render(<Counter />, document.getElementById('root'));
+```
+
+#### 11.3.PuerComponent实现
+
+```javascript
+/*
+ * @Author: dfh
+ * @Date: 2021-03-01 19:49:40
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-01 22:28:52
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/PureComponent.js
+ */
+import Component from './Component';
+
+class PureComponent extends Component {
+    shouldComponentUpdate(nextProps, nextState) {
+        const value=!shallowEqual(this.props, nextProps) || !shallowEqual(this.state, nextState)
+        console.log(value)
+        return value;
+    }
+}
+
+/**
+ * 用浅比较比较obj1和obj2是否相等
+ * 只要内存地址一样，就认为相等，不一样就不相等
+ * @param {*} obj1 
+ * @param {*} obj2 
+ */
+function shallowEqual(obj1, obj2) {
+    if (obj1 === obj2) return true;
+    if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) return false;
+    const key1 = Object.keys(obj1);
+    const key2 = Object.keys(obj2);
+    if (key1.length !== key2.length) return false;
+    for (let key of key1) {
+        if (!obj2.hasOwnProperty(key) || obj1[key] !== obj2[key]) return false;
+    }
+    return true;
+}
+
+export default PureComponent;
+```
 
 
 
