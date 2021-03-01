@@ -3990,7 +3990,305 @@ class Hello extends React.Component {
 ReactDOM.render(<Hello />, document.getElementById('root'));
 ```
 
-##### 9.2.2
+##### 9.2.2.反向继承
+
+> 基于反向方向继承可以对原有组件进行扩展
+
+- `src/index.js`
+
+```react
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-01 17:21:34
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index.js
+ */
+import React from './react';
+import ReactDOM from './react-dom';
+/**
+ * 高阶组件 有三中应用场景
+ * 1.属性代理
+ * 2.反向继承
+ */
+class Button extends React.Component {
+  state = { name: '张三' }
+  componentWillMount() {
+    console.log('button componentWillMount');
+  }
+
+  componentDidMount() {
+    console.log('button componentDidMount')
+  }
+  render() {
+    return (<button name={this.state.name} title={this.props.title}></button>)
+  }
+}
+
+const wrapper = Button => {
+  return class extends Button {
+
+    state = { number: 0 }
+
+    componentWillMount() {
+      console.log('WrapperButton componentWillMount');
+    }
+
+    componentDidMount() {
+      console.log('WrapperButton componentDidMount');
+    }
+
+    handlerClick = () => {
+      this.setState({ number: this.state.number + 1 });
+    }
+
+    render() {
+      const renderElement = super.render();
+      const newProps = {
+        ...renderElement.props,
+        ...this.state,
+        onClick: this.handlerClick
+      }
+      return React.cloneElement(renderElement, newProps, this.state.number);
+    }
+  }
+}
+
+const WrapperButton = wrapper(Button)
+ReactDOM.render(<WrapperButton title='标题' />, document.getElementById('root'));
+```
+
+- `src/react.js`
+
+```javascript
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:34:24
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-01 17:21:21
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/react.js
+ */
+import Component from './Component';
+import { wrapToVdom } from './utils';
+/**
+ * 
+ * @param {*} type 元素类型
+ * @param {*} config 配置对象
+ * @param {*} children 孩子或者孩子门
+ */
+function createElement(type, config, children) {
+    let ref, key;
+    if (config) {
+        delete config._source;
+        delete config._self;
+        ref = config.ref;
+        key = config.key;
+        delete config.ref;
+        delete config.key;
+    }
+    let props = { ...config };
+
+    if (arguments.length > 3) {//children是一个数组
+        props.children = Array.prototype.slice.call(arguments, 2).map(wrapToVdom);
+    } else {
+        props.children = wrapToVdom(children);
+    }
+    return {
+        type,
+        props,
+        ref,
+        key
+    }
+}
+
+function createRef() {
+    return { current: null }
+}
+
+function createContext(initialValue) {
+    Provider._value = initialValue;
+    function Provider(props) {
+        const { value } = props;
+        if (Provider._value) {
+            Object.assign(Provider._value, value)
+        } else {
+            Provider._value = value;
+        }
+        return props.children;
+    }
+    function Consumer(props) {
+        return props.children(Provider._value);
+    }
+    return { Provider, Consumer };
+}
+
++ function cloneElement(oldElement, newProps, ...newChildren) {
++   let children = oldElement.props.children;
++   //children可能是undefined,对象，数组
++   if (children) {
++       if (!Array.isArray(children)) {//是一个对象
++           children = [children]
++       }
++   } else {//undefined
++       children = [];
++   }
++   children.push(...newChildren);
++   children = children.map(wrapToVdom);
++   if (children.length === 0) {
++       children = undefined;
++   } else if (children.length === 1) {
++       children = children[0];
++   }
++   newProps.children = children;
++   const props = { ...oldElement.props, ...newProps };
++   return { ...oldElement, props };
++ }
+const React = {
+    createElement,
+    Component,
+    createRef,
+    createContext,
++   cloneElement
+}
+export default React;
+```
+
+### 10.`render props`
+
+- `render props`是值一种在`react`组件之间使用一个值为函数的`props`共享代码的简单技术
+- 具有`render props`组件接受一个函数，该函数返回一个`react`元素并调用它而不是实现自己的渲染逻辑
+- `render props`是一个用于告知组件需要渲染什么内容的函数`props`
+
+#### 10.1.原生实现
+
+```react
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-01 19:06:45
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index.js
+ */
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+class MouseTracker extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { x: 0, y: 0 };
+  }
+
+  handeMouseMove = event => {
+    this.setState({
+      x: event.clientX,
+      y: event.clientY
+    })
+  }
+
+  render() {
+    return <div onMouseMove={this.handeMouseMove}>
+      <h1>移动鼠标</h1>
+      <p>当前的鼠标位置是：({this.state.x},{this.state.y})</p>
+    </div>
+  }
+}
+ReactDOM.render(<MouseTracker />, document.getElementById('root'));
+```
+
+#### 10.2.render属性
+
+```react
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-01 19:17:45
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index.js
+ */
+import React from 'react';
+import ReactDOM from 'react-dom';
+/**
+ * render props
+ * 1.render props在React组件之间使用一个值为函数的props共享代码
+ * 
+ */
+class MouseTracker extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { x: 0, y: 0 };
+  }
+
+  handeMouseMove = event => {
+    this.setState({
+      x: event.clientX,
+      y: event.clientY
+    })
+  }
+
+  render() {
+    return <div onMouseMove={this.handeMouseMove}>
+      {this.props.render(this.state)}
+    </div>
+  }
+}
+ReactDOM.render(<MouseTracker render={props => <>
+  <h1>移动鼠标</h1>
+  <p>当前的鼠标位置是：({props.x},{props.y})</p>
+</>} />, document.getElementById('root'));
+```
+
+#### 10.3.children
+
+> children是一个渲染方法
+
+```react
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-01 19:21:16
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index-render-props1.js
+ */
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+class MouseTracker extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { x: 0, y: 0 };
+  }
+
+  handeMouseMove = event => {
+    this.setState({
+      x: event.clientX,
+      y: event.clientY
+    })
+  }
+
+  render() {
+    return <div onMouseMove={this.handeMouseMove}>
+      {this.props.children(this.state)}
+    </div>
+  }
+}
+ReactDOM.render(<MouseTracker >{
+  props => <>
+    <h1>移动鼠标</h1>
+    <p>当前的鼠标位置是：({props.x},{props.y})</p>
+  </>
+}</MouseTracker>, document.getElementById('root'));
+```
+
+### 11.shouldComponentUpdate
+
+- 当一个组件的`props`或`state`变更，`React`会将最新返回的元素与之前渲染的元素进行对比，以此决定是否有必要更新真实的DOM，当它们不相同时`React`会更新改DOM
+- 如果渲染的组件非常多时，可以通过覆盖生命周期方法`shouldComponentUpdate`来进行优化
+- `shouldComponentUpdate`方法会在重新渲染前触发。其默认实现是返回true。如果组件不需要更新，可以在`shouldComponentUpdate`中返回false来跳过整个渲染过程。其包括该组件的`render`调用以及之后的操作。
 
 
 

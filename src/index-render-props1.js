@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:18:22
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 19:21:16
+ * @LastEditTime: 2021-03-01 19:22:42
  * @Modified By: dfh
  * @FilePath: /day25-react/src/index-render-props1.js
  */
@@ -24,13 +24,11 @@ class MouseTracker extends React.Component {
 
   render() {
     return <div onMouseMove={this.handeMouseMove}>
-      {this.props.children(this.state)}
+      {this.props.render(this.state)}
     </div>
   }
 }
-ReactDOM.render(<MouseTracker >{
-  props => <>
-    <h1>移动鼠标</h1>
-    <p>当前的鼠标位置是：({props.x},{props.y})</p>
-  </>
-}</MouseTracker>, document.getElementById('root'));
+ReactDOM.render(<MouseTracker render={props => <>
+  <h1>移动鼠标</h1>
+  <p>当前的鼠标位置是：({props.x},{props.y})</p>
+</>} />, document.getElementById('root'));
