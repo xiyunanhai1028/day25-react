@@ -2,12 +2,12 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:18:22
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 08:22:34
+ * @LastEditTime: 2021-03-01 09:21:53
  * @Modified By: dfh
  * @FilePath: /day25-react/src/index.js
  */
-import React from './react';
-import ReactDOM from './react-dom';
+import React from 'react';
+import ReactDOM from 'react-dom';
 
 class Counter extends React.Component {
   constructor(props) {
@@ -42,6 +42,7 @@ class ChildCounter extends React.Component {
    * @param {*} prevState 
    */
   static getDerivedStateFromProps(nextProps, prevState) {
+    console.log('getDerivedStateFromProps',nextProps,prevState)
     const { num } = nextProps;
     if (num % 2 === 0) {//当为2的倍数时，更新状态
       return { number: num * 2 };
@@ -50,6 +51,11 @@ class ChildCounter extends React.Component {
     } else {
       return null
     }
+  }
+
+  shouldComponentUpdate(nextProps,nextState){
+    console.log('shouldComponentUpdate',nextProps,nextState);
+    return true;
   }
 
   render() {

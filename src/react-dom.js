@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-28 17:03:54
+ * @LastEditTime: 2021-03-01 09:31:15
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -71,6 +71,13 @@ function mountClassComponent(vdom) {
     //调用生命周期方法componentWillMount
     if (classInstance.componentWillMount) {
         classInstance.componentWillMount();
+    }
+    //执行生命周期方法getDerivedStateFromProps
+    if (Clazz.getDerivedStateFromProps) {
+        const partialState = Clazz.getDerivedStateFromProps(classInstance.props, classInstance.state)
+        if (partialState) {
+            classInstance.state = { ...classInstance.state, ...partialState };
+        }
     }
     //获取虚拟DOM
     const oldRenderVdom = classInstance.render();

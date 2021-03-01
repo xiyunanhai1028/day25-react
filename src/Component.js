@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 23:34:42
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 08:22:23
+ * @LastEditTime: 2021-03-01 09:21:37
  * @Modified By: dfh
  * @FilePath: /day25-react/src/Component.js
  */
@@ -14,7 +14,7 @@ export let updateQueue = {
     updaters: [],
     batchUpdate() {//批量更新
         for (let updater of this.updaters) {
-            updater.updateClassComponent();
+            updater.updateComponent();
         }
         this.isBatchingUpdate = false;
         this.updaters.length = 0;
@@ -45,22 +45,18 @@ class Updater {
         if (updateQueue.isBatchingUpdate) {//当前处于批量更新模式，先缓存updater
             updateQueue.updaters.push(this);//本次setState调用结束
         } else {//当前处于非批量更新模式，执行更新
-            this.updateClassComponent();//直接更新组件
+            this.updateComponent();//直接更新组件
         }
     }
 
-    updateClassComponent() {
+    updateComponent() {
         const { classInstance, pendingStates, cbs, nextProps } = this;
         if (nextProps || pendingStates.length > 0) {//有setState
-            shouldUpdate(classInstance, nextProps, this.getState())
-            // classInstance.state = this.getState();//计算新状态
-            // classInstance.forceUpdate();
-            // cbs.forEach(cb=>cb());
-            // cbs.length=0;
+            shouldUpdate(classInstance, nextProps, this.getState(nextProps))
         }
     }
 
-    getState() {//计算新状态
+    getState(nextProps) {//计算新状态
         const { classInstance, pendingStates } = this;
         let { state } = classInstance;//获取老状态
         pendingStates.forEach(newState => {
@@ -71,6 +67,13 @@ class Updater {
             state = { ...state, ...newState };
         })
         pendingStates.length = 0;//清空数组
+        debugger
+        if (classInstance.constructor.getDerivedStateFromProps) {
+            const partialState = classInstance.constructor.getDerivedStateFromProps(nextProps, classInstance.state)
+            if (partialState) {//状态合并
+                state = { ...state, ...partialState };
+            }
+        }
         return state;
     }
 }
@@ -96,16 +99,10 @@ function shouldUpdate(classInstance, nextProps, newState) {
         classInstance.props = nextProps;
     }
 
-    if(classInstance.constructor.getDerivedStateFromProps){
-        const partialState=classInstance.constructor.getDerivedStateFromProps(nextProps,classInstance.state)
-        if(partialState){//状态合并
-            newState={...newState,...partialState};
-        }
-    }
     //不管组件要不要更新，组件的state一定会改变
     classInstance.state = newState;
     //如果需要更新，走组件的更新逻辑
-    willUpdate && classInstance.forceUpdate()
+    willUpdate && classInstance.updateComponent()
 }
 class Component {
     //用来判断是类组件
@@ -121,7 +118,26 @@ class Component {
         this.updater.addState(partialState, cb);
     }
 
+    /**
+     * 强制更新：一般来说组件的属性或者状态没有改变时组件时不更新的，如果我们还想更新组件可以调用此方法更新组件
+     */
     forceUpdate() {
+        let nextState = this.state;
+        let nextProps = this.props;
+        if (this.constructor.getDerivedStateFromProps) {
+            const partialState = this.constructor.getDerivedStateFromProps(nextProps, nextState);
+            if(partialState){
+                nextState={...nextState,partialState}
+            }
+        }
+        this.state=nextState;
+        this.updateComponent();
+    }
+
+    /**
+     * 更新组件
+     */
+    updateComponent() {
         const newRenderVdom = this.render();//新的虚拟DOM
         const oldRenderVdom = this.oldRenderVdom;//老得虚拟DOM
         const dom = findDOM(oldRenderVdom);//老得真实DOM
