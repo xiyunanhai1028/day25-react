@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 13:33:21
+ * @LastEditTime: 2021-03-01 17:21:21
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
@@ -59,10 +59,33 @@ function createContext(initialValue) {
     }
     return { Provider, Consumer };
 }
+
+function cloneElement(oldElement, newProps, ...newChildren) {
+    let children = oldElement.props.children;
+    //children可能是undefined,对象，数组
+    if (children) {
+        if (!Array.isArray(children)) {//是一个对象
+            children = [children]
+        }
+    } else {//undefined
+        children = [];
+    }
+    children.push(...newChildren);
+    children = children.map(wrapToVdom);
+    if (children.length === 0) {
+        children = undefined;
+    } else if (children.length === 1) {
+        children = children[0];
+    }
+    newProps.children = children;
+    const props = { ...oldElement.props, ...newProps };
+    return { ...oldElement, props };
+}
 const React = {
     createElement,
     Component,
     createRef,
-    createContext
+    createContext,
+    cloneElement
 }
 export default React;

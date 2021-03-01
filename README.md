@@ -3938,7 +3938,9 @@ module.exports=override(
 }
 ```
 
-#### 9.1.按理
+#### 9.2.按理
+
+##### 9.2.1.属性代理
 
 ```javascript
 /*
@@ -3988,7 +3990,7 @@ class Hello extends React.Component {
 ReactDOM.render(<Hello />, document.getElementById('root'));
 ```
 
-
+##### 9.2.2
 
 
 
