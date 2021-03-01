@@ -2,66 +2,52 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:18:22
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 09:21:53
+ * @LastEditTime: 2021-03-01 11:34:06
  * @Modified By: dfh
  * @FilePath: /day25-react/src/index.js
  */
-import React from 'react';
-import ReactDOM from 'react-dom';
+import React from './react';
+import ReactDOM from './react-dom';
 
 class Counter extends React.Component {
+  ulRef = React.createRef();//{current:null}
   constructor(props) {
     super(props)
-    this.state = { num: 0 }
+    this.state = { list: [] }
+  }
+
+  getSnapshotBeforeUpdate() {
+    return this.ulRef.current.scrollHeight;
+  }
+
+  /**
+   * 
+   * @param {*} prevProps 老得props
+   * @param {*} prevState 老得state
+   * @param {*} scrollHeight getSnapshotBeforeUpdate传递的值
+   */
+  componentDidUpdate(prevProps, prevState, scrollHeight) {
+    console.log('本次新增的高度:', this.ulRef.current.scrollHeight - scrollHeight)
   }
 
   handlerClick = () => {
-    this.setState({ num: this.state.num + 1 });
+    const list = this.state.list;
+    list.push(list.length);
+    this.setState({ list });
   }
 
   render() {
     return (
       <div id={`id-${this.state.num}`}>
-        <p>{this.props.name}:{this.state.num}</p>
-        <ChildCounter num={this.state.num} />
-        <button onClick={this.handlerClick}>加2</button>
+        <button onClick={this.handlerClick}>+</button>
+        <ul ref={this.ulRef}>
+          {this.state.list.map((item, index) => <li key={index}>{index}</li>)}
+        </ul>
       </div>
     )
   }
 }
 
-class ChildCounter extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { number: 0 }
-  }
-
-  /**
-   * componentWillReceiveProps
-   * @param {*} nextProps 
-   * @param {*} prevState 
-   */
-  static getDerivedStateFromProps(nextProps, prevState) {
-    console.log('getDerivedStateFromProps',nextProps,prevState)
-    const { num } = nextProps;
-    if (num % 2 === 0) {//当为2的倍数时，更新状态
-      return { number: num * 2 };
-    } else if (num % 3 === 0) {//当为3的倍数时，更新状态
-      return { number: num * 3 };
-    } else {
-      return null
-    }
-  }
-
-  shouldComponentUpdate(nextProps,nextState){
-    console.log('shouldComponentUpdate',nextProps,nextState);
-    return true;
-  }
-
-  render() {
-    return <div>{this.state.number}</div>
-  }
-}
 
 ReactDOM.render(<Counter name='张三' />, document.getElementById('root'));
 

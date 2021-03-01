@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 23:34:42
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 09:21:37
+ * @LastEditTime: 2021-03-01 11:34:22
  * @Modified By: dfh
  * @FilePath: /day25-react/src/Component.js
  */
@@ -67,7 +67,6 @@ class Updater {
             state = { ...state, ...newState };
         })
         pendingStates.length = 0;//清空数组
-        debugger
         if (classInstance.constructor.getDerivedStateFromProps) {
             const partialState = classInstance.constructor.getDerivedStateFromProps(nextProps, classInstance.state)
             if (partialState) {//状态合并
@@ -126,11 +125,11 @@ class Component {
         let nextProps = this.props;
         if (this.constructor.getDerivedStateFromProps) {
             const partialState = this.constructor.getDerivedStateFromProps(nextProps, nextState);
-            if(partialState){
-                nextState={...nextState,partialState}
+            if (partialState) {
+                nextState = { ...nextState, partialState }
             }
         }
-        this.state=nextState;
+        this.state = nextState;
         this.updateComponent();
     }
 
@@ -141,10 +140,11 @@ class Component {
         const newRenderVdom = this.render();//新的虚拟DOM
         const oldRenderVdom = this.oldRenderVdom;//老得虚拟DOM
         const dom = findDOM(oldRenderVdom);//老得真实DOM
+        const extraArgs = this.getSnapshotBeforeUpdate && this.getSnapshotBeforeUpdate();
         compareTwoVdom(dom.parentNode, oldRenderVdom, newRenderVdom);
         this.oldRenderVdom = newRenderVdom;//比较完毕后，重新赋值老的虚拟节点
         //调用生命周期方法componentDidUpdate
-        this.componentDidUpdate && this.componentDidUpdate();
+        this.componentDidUpdate && this.componentDidUpdate(this.props, this.state, extraArgs);
     }
 }
 

@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-28 16:22:11
+ * @LastEditTime: 2021-03-01 11:30:06
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
@@ -15,9 +15,14 @@ import { wrapToVdom } from './utils';
  * @param {*} children 孩子或者孩子门
  */
 function createElement(type, config, children) {
+    let ref, key;
     if (config) {
         delete config._source;
         delete config._self;
+        ref = config.ref;
+        key = config.key;
+        delete config.ref;
+        delete config.key;
     }
     let props = { ...config };
 
@@ -28,12 +33,18 @@ function createElement(type, config, children) {
     }
     return {
         type,
-        props
+        props,
+        ref,
+        key
     }
 }
 
+function createRef() {
+    return { current: null }
+}
 const React = {
     createElement,
-    Component
+    Component,
+    createRef
 }
 export default React;

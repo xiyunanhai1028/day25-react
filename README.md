@@ -2406,11 +2406,11 @@ export default React;
 - 将父组件传递的props映射到当前组件的state上
 - 状态是合并不是替换
 
-##### 7.2.1.为什么将getDerivedStateFromProps设计为静态方法
+为什么将getDerivedStateFromProps设计为静态方法
 
 > getDerivedStateFromProps其实是老生命周期componentWillReceiveProps的替换品，因为componentWillReceiveProps里可以点用setState，很可能会让父组件刷新，父组件一旦刷新，就会重新执行componentWillReceiveProps，这样就容易造成死循环。而getDerivedStateFromProps被设计成了静态方法，里面是不能调用setState的，避免出现死循环。同时getDerivedStateFromProps是单利的比实例属性节约资源。
 
-##### 7.2.2.实例
+##### 7.2.1.事例
 
 ```react
 import React from 'react';
@@ -2467,7 +2467,9 @@ class ChildCounter extends React.Component {
 ReactDOM.render(<Counter name='张三' />, document.getElementById('root'));
 ```
 
-##### 7.2.3.`src/react-dom.js`
+##### 7.2.2.实现
+
+###### 7.2.2.1.`src/react-dom.js`
 
 ```javascript
 /*
@@ -2738,7 +2740,7 @@ const ReactDOM = {
 export default ReactDOM;
 ```
 
-##### 7.2.4.`src/Component.js`
+###### 7.2.2.2.`src/Component.js`
 
 ```javascript
 /*

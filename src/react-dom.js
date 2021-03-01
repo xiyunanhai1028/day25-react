@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 09:31:15
+ * @LastEditTime: 2021-03-01 11:32:14
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -30,7 +30,10 @@ function render(vdom, container) {
 export function createDOM(vdom) {
     const {
         type,
-        props } = vdom;
+        props,
+        key,
+        ref
+    } = vdom;
     //创建真实DOM
     let dom;
     if (type === REACT_TEXT) {//是文本
@@ -55,6 +58,8 @@ export function createDOM(vdom) {
 
     //将真实DOM挂载到虚拟DOM上，以便后面取
     vdom.dom = dom;
+    //通过虚拟DOM创建真实DOM之后,虚拟DOM的ref属性的current属性等于真实DOM
+    ref && (ref.current = dom);
     return dom;
 }
 
@@ -91,6 +96,7 @@ function mountClassComponent(vdom) {
     }
     //将真实dom挂到实例上上
     classInstance.dom = dom;
+
     return dom;
 }
 
