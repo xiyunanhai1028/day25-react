@@ -964,7 +964,9 @@ function createSyntheticEvent(nativeEvent){
 }
 ```
 
-### 6.类组件生命周期
+### 6.类组件老生命周期
+
+![老生命周期](http://img.zhufengpeixun.cn/react15.jpg)
 
 #### 6.1.基本生命周期实现
 
@@ -1891,7 +1893,7 @@ import { compareTwoVdom ,findDOM} from './react-dom'
 //更新队列
 export let updateQueue = {
     isBatchingUpdate: false,//当前是否处于批量更新模式
-    updaters: new Set(),
++   updaters: [],
     batchUpdate() {//批量更新
         for (let updater of this.updaters) {
             updater.updateClassComponent();
@@ -1962,17 +1964,25 @@ class Updater {
  * @param {*} newState 新状态
  */
 function shouldUpdate(classInstance, nextProps, newState) {
++    let willUpdate = true;//是否需要更新
++   //如果有这个方法，并且这个方法的返回值为false，则不需要继续向下更新了，否则就更新
++   if (classInstance.shouldComponentUpdate && !classInstance.shouldComponentUpdate(nextProps, newState)) {
++       willUpdate = false;
++   }
++   //如果需要更新，并且组件调用类componentWillUpdate方法
++   if (willUpdate && classInstance.componentWillUpdate) {
++       classInstance.componentWillUpdate();//执行生命周期方法componentWillUpdate
++   }
++   //不管是否需要更新，属性和状态都有改变
 +   if (nextProps) {
 +       classInstance.props = nextProps;
 +   }
-    //不管组件要不要更新，组件的state一定会改变
-    classInstance.state = newState;
-    //如果有这个方法，并且这个方法的返回值为false，则不需要继续向下更新了，否则就更新
-    if (classInstance.shouldComponentUpdate && !classInstance.shouldComponentUpdate(classInstance.props, newState)) {
-        return;
-    }
-    classInstance.forceUpdate()
++   //不管组件要不要更新，组件的state一定会改变
++   classInstance.state = newState;
++   //如果需要更新，走组件的更新逻辑
++   willUpdate && classInstance.forceUpdate()
 }
+  
 class Component {
     //用来判断是类组件
     static isReactComponent = true;
@@ -1988,8 +1998,6 @@ class Component {
     }
 
     forceUpdate() {
-        //执行生命周期方法componentWillUpdate
-        this.componentWillUpdate && this.componentWillUpdate();
         const newRenderVdom = this.render();//新的虚拟DOM
 +       const oldRenderVdom = this.oldRenderVdom;//老得虚拟DOM
 +       const dom = findDOM(oldRenderVdom);//老得真实DOM
@@ -2385,6 +2393,81 @@ export default React;
 +   ?{type:REACT_TEXT,props:{content:element}}:element;
 + }
 ```
+
+### 7.新生命周期
+
+#### 7.1.生命周期图
+
+![生命周期图](http://img.zhufengpeixun.cn/react16.jpg)
+
+#### 7.2.getDerivedStateFromProps
+
+- 是一个静态方法
+- 将父组件传递的props映射到当前组件的state上
+- 状态是合并不是替换
+
+##### 7.2.1.为什么将getDerivedStateFromProps设计为静态方法
+
+> getDerivedStateFromProps其实是老生命周期componentWillReceiveProps的替换品，因为componentWillReceiveProps里可以点用setState，很可能会让父组件刷新，父组件一旦刷新，就会重新执行componentWillReceiveProps，这样就容易造成死循环。而getDerivedStateFromProps被设计成了静态方法，里面是不能调用setState的，避免出现死循环。同时getDerivedStateFromProps是单利的比实例属性节约资源。
+
+##### 7.2.2.实例：
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+class Counter extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { num: 0 }
+  }
+
+  handlerClick = () => {
+    this.setState({ num: this.state.num + 1 });
+  }
+
+  render() {
+    return (
+      <div id={`id-${this.state.num}`}>
+        <p>{this.props.name}:{this.state.num}</p>
+        <ChildCounter num={this.state.num} />
+        <button onClick={this.handlerClick}>加2</button>
+      </div>
+    )
+  }
+}
+
+class ChildCounter extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { number: 0 }
+  }
+
+  /**
+   * componentWillReceiveProps
+   * @param {*} nextProps 
+   * @param {*} prevState 
+   */
+  static getDerivedStateFromProps(nextProps, prevState) {
+    const { num } = nextProps;
+    if (num % 2 === 0) {//当为2的倍数时，更新状态
+      return { number: num * 2 };
+    } else if (num % 3 === 0) {//当为3的倍数时，更新状态
+      return { number: num * 3 };
+    } else {
+      return null
+    }
+  }
+
+  render() {
+    return <div>{this.state.number}</div>
+  }
+}
+
+ReactDOM.render(<Counter name='张三' />, document.getElementById('root'));
+```
+
+##### 7.2.3.实现
 
 
 

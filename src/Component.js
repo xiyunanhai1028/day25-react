@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 23:34:42
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 07:25:20
+ * @LastEditTime: 2021-03-01 08:22:23
  * @Modified By: dfh
  * @FilePath: /day25-react/src/Component.js
  */
@@ -94,6 +94,13 @@ function shouldUpdate(classInstance, nextProps, newState) {
     //不管是否需要更新，属性和状态都有改变
     if (nextProps) {
         classInstance.props = nextProps;
+    }
+
+    if(classInstance.constructor.getDerivedStateFromProps){
+        const partialState=classInstance.constructor.getDerivedStateFromProps(nextProps,classInstance.state)
+        if(partialState){//状态合并
+            newState={...newState,...partialState};
+        }
     }
     //不管组件要不要更新，组件的state一定会改变
     classInstance.state = newState;
