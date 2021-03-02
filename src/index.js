@@ -2,27 +2,41 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:18:22
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 17:44:00
+ * @LastEditTime: 2021-03-02 18:15:55
  * @Modified By: dfh
  * @FilePath: /day25-react/src/index.js
  */
 import React from './react';
 import ReactDOM from './react-dom';
 
-function App() {
-  const [num, setNum] = React.useState(0);
-
-  React.useLayoutEffect(() => {
-    const timer = setInterval(() => {
-      console.log('开启定时器');
-      setNum(num + 1);
-    }, 1000);
-    return () => {
-      console.log('关闭定时器');
-      clearInterval(timer);
-    }
+function Animate() {
+  const ref = React.useRef();
+  const ref2 = React.useRef();
+  React.useEffect(() => {
+    ref.current.style.WebkitTransform = `translateX(500px)`;
+    ref.current.style.transition = `all 1000ms`;
   })
-  return <div>自动计数：{num}</div>
-}
+  React.useLayoutEffect(() => {
+    ref2.current.style.WebkitTransform = `translateX(500px)`;
+    ref2.current.style.transition = `all 1000ms`;
+  })
 
-ReactDOM.render(<App />, document.getElementById('root'));
+  const style = {
+    marginTop:'60px',
+    width: '100px',
+    height: '100px',
+    backgroundColor: 'red'
+  }
+  const style2 = {
+    width: '100px',
+    height: '100px',
+    backgroundColor: 'green'
+  }
+
+  return <div >
+    <div style={style} ref={ref}>useEffect渲染后执行</div>
+    <div style={style2} ref={ref2}>useLayoutEffect渲染前执行</div>
+  </div>
+}
+ReactDOM.render(<Animate />, document.getElementById('root'));
+

@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 17:43:36
+ * @LastEditTime: 2021-03-02 18:08:34
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -388,8 +388,8 @@ export function useEffect(callback, deps) {
 
 export function useLayoutEffect(callback, deps) {
     if (hookStates[hookIndex]) {
-        const { oldDestroyFunction, oldDeps } = hookStates[hookIndex];
-        const same = deps && deps.every((item, index) => item === oldDeps(index));
+        const [oldDestroyFunction, oldDeps] = hookStates[hookIndex];
+        const same = deps && deps.every((item, index) => item === oldDeps[index]);
         if (same) {
             hookIndex++;
         } else {
