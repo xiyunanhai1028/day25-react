@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 18:08:34
+ * @LastEditTime: 2021-03-02 22:23:35
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -82,9 +82,13 @@ export function createDOM(vdom) {
  * @param {*} vdom 类型为自定义类组件的虚拟DOM
  */
 function mountClassComponent(vdom) {
-    const { type: Clazz, props } = vdom;
+    const { type: Clazz, props, ref } = vdom;
     //获取类的实例
     const classInstance = new Clazz(props);
+    
+    if (ref) {//如果虚拟DOM上有ref，那么将ref赋值到事例上
+        classInstance.ref = ref;
+    }
     if (Clazz.contextType) {
         classInstance.context = Clazz.contextType._currentValue;
     }

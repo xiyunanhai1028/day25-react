@@ -639,6 +639,50 @@ function Animate() {
 ReactDOM.render(<Animate />, document.getElementById('root'));
 ```
 
+### 9.forwardRef
+
+- 将ref从父组件中转发到子组件中的DOM元素上
+- 子组件接受props和ref作为参数
+
+#### 9.1.事例
+
+> 点击按钮时，输入框获取焦点
+
+![forwardRef](/Users/dufeihu/Documents/html/zhufeng/复习/day25-react/forwardRef.gif)
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+function Counter(props, ref) {
+  return <input type="text" ref={ref} />
+}
+
+const WrapperCounter = React.forwardRef(Counter);
+
+function App() {
+  const ref = React.useRef();
+
+  const getFocus = () => {
+    ref.current.focus();
+  }
+  
+  return <div>
+    <WrapperCounter ref={ref} />
+    <button onClick={getFocus}>获取焦点</button>
+  </div>
+}
+ReactDOM.render(<App />, document.getElementById('root'));
+```
+
+#### 9.2.实现
+
+##### 9.2.1.`src/react-dom.js`
+
+```javascript
+fun
+```
+
 
 
 

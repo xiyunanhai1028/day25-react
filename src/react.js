@@ -2,14 +2,14 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 17:39:41
+ * @LastEditTime: 2021-03-02 22:23:57
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
 import Component from './Component';
 import PureComponent from './PureComponent';
 import { wrapToVdom } from './utils';
-import { useState, useCallback, useMemo, useReducer,useContext,useEffect,useLayoutEffect,useRef } from './react-dom';
+import { useState, useCallback, useMemo, useReducer, useContext, useEffect, useLayoutEffect, useRef } from './react-dom';
 /**
  * 
  * @param {*} type 元素类型
@@ -49,10 +49,10 @@ function createContext(initialValue) {
     const context = { Provider, Consumer };
     function Provider(props) {
         context._currentValue = context._currentValue || initialValue;
-        if(context._currentValue){
+        if (context._currentValue) {
             Object.assign(context._currentValue, props.value);
-        }else{
-            context._currentValue=props.value
+        } else {
+            context._currentValue = props.value
         }
         return props.children;
     }
@@ -96,6 +96,18 @@ function memo(FunctionComponent) {
     }
 }
 
+/**
+ * 函数组件给子组件传递ref
+ * @param {*} FunctionComponent 函数组件
+ */
+function forwardRef(FunctionComponent) {
+    return class extends Component {
+        render() {
+            return FunctionComponent(this.props, this.ref)
+        }
+    }
+}
+
 const React = {
     createElement,
     Component,
@@ -111,6 +123,7 @@ const React = {
     useContext,
     useEffect,
     useLayoutEffect,
-    useRef
+    useRef,
+    forwardRef
 }
 export default React;
