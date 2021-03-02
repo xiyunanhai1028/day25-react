@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 14:28:10
+ * @LastEditTime: 2021-03-02 15:51:28
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -86,7 +86,7 @@ function mountClassComponent(vdom) {
     //获取类的实例
     const classInstance = new Clazz(props);
     if (Clazz.contextType) {
-        classInstance.context = Clazz.contextType.Provider._value;
+        classInstance.context = Clazz.contextType._currentValue;
     }
     //让这个类组件的虚拟DOM的classInstance属性指向这个类组件的实例
     vdom.classInstance = classInstance;
@@ -305,7 +305,7 @@ export function useReducer(reducer, initialValue) {
             newState = action(oldState)
         }
         if (reducer) {//useReducer的情况
-            newState = reducer(hookStates[currentIndex], action);
+            newState = reducer(oldState, action);
         } else {//setState情况
             newState = action;
         }
@@ -354,6 +354,10 @@ export function useCallback(callback, deps) {
         hookStates[hookIndex++] = [callback, deps];//将回调和依赖存储起来
         return callback;//返回回到
     }
+}
+
+export function useContext(context){
+    return context._currentValue;
 }
 const ReactDOM = {
     render

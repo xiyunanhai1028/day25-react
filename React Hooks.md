@@ -339,5 +339,48 @@ ReactDOM.render(<Counter />, document.getElementById('root'));
 
 ##### 4.2.1.`src/react.js`
 
+```javascript
+import { useState, useCallback, useMemo,useReducer } from './react-dom';
+
+const React = {
+    useReducer
+}
+```
+
+##### 4.2.2.`src/react-dom.js`
+
+```javascript
+/**
+ * 让函数组件可以使用状态
+ * @param {*} initialValue 初始状态
+ */
+export function useState(initialValue) {
+    return useReducer(null, initialValue);
+}
+
+export function useReducer(reducer, initialValue) {
+    //把老得值取出来，如果没有，取默认值
+    hookStates[hookIndex] = hookStates[hookIndex] || (typeof initialValue === 'function' ? initialValue() : initialValue);
+    let currentIndex = hookIndex;//闭包记录每次setState的位置
+    function dispatch(action) {
+        const oldState = hookStates[currentIndex];
+        let newState;
+        if (typeof action === 'function') {//setState里面是一个函数
+            newState = action(oldState)
+        }
+        if (reducer) {//useReducer的情况
+            newState = reducer(oldState, action);
+        } else {//setState情况
+            newState = action;
+        }
+        if (oldState !== newState) {
+            hookStates[currentIndex] = newState;
+            scheduleUpdate();
+        }
+    }
+    return [hookStates[hookIndex++], dispatch];
+}
+```
+
 
 

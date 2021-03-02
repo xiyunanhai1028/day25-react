@@ -2,14 +2,14 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 14:28:47
+ * @LastEditTime: 2021-03-02 15:48:17
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
 import Component from './Component';
 import PureComponent from './PureComponent';
 import { wrapToVdom } from './utils';
-import { useState, useCallback, useMemo,useReducer } from './react-dom';
+import { useState, useCallback, useMemo, useReducer,useContext } from './react-dom';
 /**
  * 
  * @param {*} type 元素类型
@@ -46,20 +46,20 @@ function createRef() {
 }
 
 function createContext(initialValue) {
-    Provider._value = initialValue;
+    const context = { Provider, Consumer };
     function Provider(props) {
-        const { value } = props;
-        if (Provider._value) {
-            Object.assign(Provider._value, value)
-        } else {
-            Provider._value = value;
+        context._currentValue = context._currentValue || initialValue;
+        if(context._currentValue){
+            Object.assign(context._currentValue, props.value);
+        }else{
+            context._currentValue=props.value
         }
         return props.children;
     }
     function Consumer(props) {
-        return props.children(Provider._value);
+        return props.children(context._currentValue)
     }
-    return { Provider, Consumer };
+    return context;
 }
 
 function cloneElement(oldElement, newProps, ...newChildren) {
@@ -107,6 +107,7 @@ const React = {
     useCallback,
     useMemo,
     memo,
-    useReducer
+    useReducer,
+    useContext
 }
 export default React;
