@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 22:23:35
+ * @LastEditTime: 2021-03-02 22:36:43
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -415,6 +415,11 @@ export function useRef(initialValue) {
     hookStates[hookIndex] = hookStates[hookIndex] || { current: initialValue };
     return hookStates[hookIndex++]
 }
+
+export function useImperativeHandle(ref,factory){
+    ref.current=factory();
+}
+
 const ReactDOM = {
     render
 }

@@ -680,8 +680,84 @@ ReactDOM.render(<App />, document.getElementById('root'));
 ##### 9.2.1.`src/react-dom.js`
 
 ```javascript
-fun
+function mountClassComponent(vdom) {
++   const { type: Clazz, props, ref } = vdom;
+    //获取类的实例
++   const classInstance = new Clazz(props);
+    
++   if (ref) {//如果虚拟DOM上有ref，那么将ref赋值到事例上
++       classInstance.ref = ref;
++   }
+}  
 ```
+
+##### 9.2.2.`src/react.js`
+
+```javascript
+/**
+ * 函数组件给子组件传递ref
+ * @param {*} FunctionComponent 函数组件
+ */
+function forwardRef(FunctionComponent) {
+    return class extends Component {
+        render() {
+            return FunctionComponent(this.props, this.ref)
+        }
+    }
+}
+
+const React = {
+    forwardRef
+}
+```
+
+### 10.useImperativeHandle
+
+- `useImperativeHandle`可以让在使用`ref`时自定义暴露给父组件的实例值
+
+#### 10.1.事例
+
+![useImperativeHandle](/Users/dufeihu/Documents/html/zhufeng/复习/day25-react/useImperativeHandle.gif)
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+function Counter(props, ref) {
+  const inputRef = React.useRef();
+  //暴露只想让外界操作的方法
+  React.useImperativeHandle(ref, () => ({
+    focus() {
+      inputRef.current.focus();
+    }
+  }))
+  return <input type="text" ref={inputRef} />
+}
+
+const WrapperCounter = React.forwardRef(Counter);
+function App() {
+  const ref = React.useRef();
+
+  const getFocus = () => {
+    //暴露的方法
+    ref.current.focus();
+  }
+
+  const removeInput = () => {
+    //为暴露的方法
+    ref.current.remove();
+  }
+
+  return <div>
+    <WrapperCounter ref={ref} />
+    <button onClick={getFocus}>获取焦点</button>
+    <button onClick={removeInput}>操作为暴露的方法</button>
+  </div>
+}
+ReactDOM.render(<App />, document.getElementById('root'));
+```
+
+#### 10.2.实现
 
 
 
