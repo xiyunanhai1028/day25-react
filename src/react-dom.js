@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 15:51:28
+ * @LastEditTime: 2021-03-02 17:18:54
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -356,8 +356,34 @@ export function useCallback(callback, deps) {
     }
 }
 
-export function useContext(context){
+export function useContext(context) {
     return context._currentValue;
+}
+
+/**
+ * 为了保证回调函数不是同步执行，而是在页面渲染后执行，需要把回调放入红任务队列
+ * @param {*} callback 回调函数，页面渲染完成后执行
+ * @param {*} deps 依赖数组
+ */
+export function useEffect(callback, deps) {
+    if (hookStates[hookIndex]) {
+        const [oldDestroyFunction, oldDeps] = hookStates[hookIndex];
+        const same = deps && deps.every((item, index) => item === oldDeps[index]);
+        if (same) {//老得依赖和新的依赖一样
+            hookIndex++;
+        } else {
+            oldDestroyFunction && oldDestroyFunction();
+            setTimeout(() => {//把回调放入红任务队列中
+                const destroyFunction = callback();
+                hookStates[hookIndex++] = [destroyFunction, deps]
+            });
+        }
+    } else {//第一次执行
+        setTimeout(() => {//把回调放入红任务队列中
+            const destroyFunction = callback();
+            hookStates[hookIndex++] = [destroyFunction, deps]
+        });
+    }
 }
 const ReactDOM = {
     render

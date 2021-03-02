@@ -382,5 +382,121 @@ export function useReducer(reducer, initialValue) {
 }
 ```
 
+### 5.useContext
+
+- 接收一个context对象，并返回该context的当前值
+- 当前的context值由上层组件中距离当前组件最近的Provider的value决定
+- 当组件上最近的Provider更新时，该Hook会触发重渲染并使用最新传递给Provider的value值
+
+#### 5.1.事例
+
+```react
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-02 15:52:12
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index.js
+ */
+import React from './react';
+import ReactDOM from './react-dom';
+const AppContext = React.createContext();
+function App() {
+  const [num, setNum] = React.useState(0);
+
+  const addHander = () => setNum(num + 1);
+
+  return <AppContext.Provider value={{ num, addHander }}>
+    <Counter />
+  </AppContext.Provider>
+}
+
+function Counter() {
+  const { num, addHander } = React.useContext(AppContext)
+  return <div style={{ margin: 500 }}>
+    <p>{num}</p>
+    <button onClick={addHander}>+</button>
+  </div>
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+```
+
+#### 5.2.实现
+
+##### 5.2.1.`src/react.js`
+
+```javascript
+import { useState, useCallback, useMemo, useReducer,useContext } from './react-dom';
+
+function createContext(initialValue) {
+    const context = { Provider, Consumer };
+    function Provider(props) {
+        context._currentValue = context._currentValue || initialValue;
+        if(context._currentValue){
+            Object.assign(context._currentValue, props.value);
+        }else{
+            context._currentValue=props.value
+        }
+        return props.children;
+    }
+    function Consumer(props) {
+        return props.children(context._currentValue)
+    }
+    return context;
+}
+
+const React = {
+    useContext
+}
+```
+
+##### 5.2.2.`src/react-dom.js`
+
+```javascript
+function mountClassComponent(vdom) {
+    if (Clazz.contextType) {
++       classInstance.context = Clazz.contextType._currentValue;
+    }
+}
+
+export function useContext(context){
+    return context._currentValue;
+}
+```
+
+### 6.useEffect
+
+- 在函数组件主体内（这里指在 React 渲染阶段）改变 DOM、添加订阅、设置定时器、记录日志以及执行其他包含副作用的操作都是不被允许的，因为这可能会产生莫名其妙的 bug 并破坏 UI 的一致性
+- 使用 useEffect 完成副作用操作。赋值给 useEffect 的函数会在组件渲染到屏幕之后执行。你可以把 effect 看作从 React 的纯函数式世界通往命令式世界的逃生通道
+- useEffect 就是一个 Effect Hook，给函数组件增加了操作副作用的能力。它跟 class 组件中的 `componentDidMount`、`componentDidUpdate` 和 `componentWillUnmount` 具有相同的用途，只不过被合并成了一个 API
+- 该 Hook 接收一个包含命令式、且可能有副作用代码的函数
+
+#### 6.1.事例
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+function App() {
+  const [num, setNum] = React.useState(0);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      console.log('开启定时器');
+      setNum(num + 1);
+    }, 1000);
+    return () => {
+      console.log('关闭定时器');
+      clearInterval(timer);
+    }
+  })
+  return <div>自动计数：{num}</div>
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+```
+
 
 
