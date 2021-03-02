@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 08:53:49
+ * @LastEditTime: 2021-03-02 13:51:47
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -33,6 +33,8 @@ function mount(vdom, container) {
     const dom = createDOM(vdom);
     //挂载真实DOM
     container.appendChild(dom);
+    //调用生命周期方法componentDidMount
+    dom.componentDidMount && dom.componentDidMount();
 }
 
 /**
@@ -182,7 +184,7 @@ export function compareTwoVdom(parentDOM, oldRenderVdom, newRenderVdom, nextDom)
             parentDOM.appendChild(newDOM);
         }
         //调用生命周期方法componentDidMount
-        newDOM.classInstance.componentDidMount && newDOM.classInstance.componentDidMount();
+        // newDOM.classInstance.componentDidMount && newDOM.classInstance.componentDidMount();
     } else if (oldRenderVdom && newRenderVdom && oldRenderVdom.type !== newRenderVdom.type) {//新老虚拟DOM都存在，但是类型不同
         const oldDOM = findDOM(oldRenderVdom);//老得真实DOM
         const newDOM = createDOM(newRenderVdom);//新的真实DOM
@@ -190,7 +192,7 @@ export function compareTwoVdom(parentDOM, oldRenderVdom, newRenderVdom, nextDom)
         //调用生命周期方法
         oldRenderVdom.classInstance && oldRenderVdom.classInstance.componentWillUnmount && oldRenderVdom.classInstance.componentWillUnmount()
         //调用生命周期方法componentDidMount
-        newDOM.classInstance.componentDidMount && newDOM.classInstance.componentDidMount();
+        // newDOM.classInstance.componentDidMount && newDOM.classInstance.componentDidMount();
     } else {//新老都有，类型也一样，要进行深度DOM-DIFF
         updateElement(oldRenderVdom, newRenderVdom);
     }
@@ -302,6 +304,44 @@ export function useState(initialValue) {
     return [hookStates[hookIndex++], setState]
 }
 
+export function useMemo(factory, deps) {
+    if (hookStates[hookIndex]) {//有数据时进入
+        const [lastMemo, lastDeps] = hookStates[hookIndex];//获取上一次存储的数据和依赖
+        //将新的依赖和老得依赖一一对比
+        const same = deps.every((item, index) => item === lastDeps[index]);
+        if (same) {//如果一样
+            hookIndex++;
+            return lastMemo;//返回老得数据
+        } else {//如果不一样
+            let newMemo = factory();//执行工厂方法获取新的数据
+            hookStates[hookIndex++] = [newMemo, deps];//将新的依赖和数据存储起来
+            return newMemo;//返回新的数据
+        }
+
+    } else {//第一次走这里
+        const newMemo = factory();//获取工厂数据
+        hookStates[hookIndex++] = [newMemo, deps];//将数据和依赖存起来
+        return newMemo;//返回工厂数据
+    }
+}
+
+export function useCallback(callback, deps) {
+    if (hookStates[hookIndex]) {//已经存储过来
+        const [lastCallback, lastDeps] = hookStates[hookIndex];//获取老得回调和依赖
+        //将新的依赖和老得依赖一一对比
+        const same = deps.every((item, index) => item === lastDeps[index]);
+        if (same) {//如果一样
+            hookIndex++;
+            return lastCallback//返回老得回调
+        } else {//如果不一样
+            hookStates[hookIndex++] = [callback, deps];//将新的回调和依赖存储起来
+            return callback;//返回新的依赖
+        }
+    } else {//第一次进入
+        hookStates[hookIndex++] = [callback, deps];//将回调和依赖存储起来
+        return callback;//返回回到
+    }
+}
 const ReactDOM = {
     render
 }

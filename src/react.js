@@ -2,14 +2,14 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 07:39:01
+ * @LastEditTime: 2021-03-02 10:17:34
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
 import Component from './Component';
 import PureComponent from './PureComponent';
 import { wrapToVdom } from './utils';
-import {useState} from './react-dom';
+import { useState, useCallback, useMemo } from './react-dom';
 /**
  * 
  * @param {*} type 元素类型
@@ -18,7 +18,7 @@ import {useState} from './react-dom';
  */
 function createElement(type, config, children) {
     let ref, key;
-    if(config){
+    if (config) {
         delete config.__source;
         delete config.__self;
         ref = config.ref;
@@ -26,7 +26,7 @@ function createElement(type, config, children) {
         key = config.key;
         delete config.key;
     }
-   let props = {...config};
+    let props = { ...config };
 
     if (arguments.length > 3) {//children是一个数组
         props.children = Array.prototype.slice.call(arguments, 2).map(wrapToVdom);
@@ -84,6 +84,18 @@ function cloneElement(oldElement, newProps, ...newChildren) {
     return { ...oldElement, props };
 }
 
+/**
+ * 函数组件实现优化
+ * @param {*} FunctionComponent 函数组件
+ */
+function memo(FunctionComponent) {
+    return class extends PureComponent {
+        render() {
+            return FunctionComponent(this.props);
+        }
+    }
+}
+
 const React = {
     createElement,
     Component,
@@ -91,6 +103,9 @@ const React = {
     createRef,
     createContext,
     cloneElement,
-    useState
+    useState,
+    useCallback,
+    useMemo,
+    memo
 }
 export default React;
