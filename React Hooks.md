@@ -26,3 +26,45 @@
 const [state,setState]=useState(initialState);
 ```
 
+#### 2.1.事例1
+
+```react
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-02 08:05:08
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index.js
+ */
+import React from './react';
+import ReactDOM from './react-dom';
+
+function Counter() {
+  const [number, setNumber] = React.useState(0);
+
+  /**
+   * 异步时，会拿老得状态
+   */
+  function asyncAdd() {
+    setTimeout(() => {
+      setNumber(number + 1);
+    }, 3000);
+  }
+  return <div>
+    <p>{number}</p>
+    <button onClick={() => setNumber(number + 1)}>add +1</button>
+    <button onClick={asyncAdd}>async +1</button>
+  </div>
+}
+ReactDOM.render(<Counter />, document.getElementById('root'));
+```
+
+#### 2.2.实现
+
+##### 2.2.1.`src/react`
+
+```javascript
+
+```
+

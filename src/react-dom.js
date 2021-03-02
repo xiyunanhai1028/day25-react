@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 13:40:33
+ * @LastEditTime: 2021-03-02 08:53:49
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -10,17 +10,29 @@
 import { REACT_TEXT } from './constants';
 import { addEvent } from './event';
 
+//这是一个数组，用来存放所有的Hook状态,原版代码里hookState每个组件有自己的通过Fiber来实现的
+let hookStates = [];
+//hook索引，表示当前的hook
+let hookIndex = 0;
+//调度更新
+let scheduleUpdate;
 /**
  * 给跟容器挂载的时候
  * @param {*} vdom 需要渲染的虚拟DOM
  * @param {*} container 容器
  */
 function render(vdom, container) {
+    mount(vdom, container);
+    scheduleUpdate = () => {
+        hookIndex = 0;//在状态修改后，调度更新的时候，索引重置为0
+        compareTwoVdom(container, vdom, vdom);
+    }
+}
+
+function mount(vdom, container) {
     const dom = createDOM(vdom);
     //挂载真实DOM
     container.appendChild(dom);
-    //调用生命周期方法componentDidMount
-    dom.componentDidMount && dom.componentDidMount();
 }
 
 /**
@@ -51,7 +63,7 @@ export function createDOM(vdom) {
     //使用虚拟DOM的属性更新刚创建出来的真实DOM的属性
     updateProps(dom, {}, props);
     if (typeof props.children === 'object' && props.children.type) {//只有一个儿子，并且是虚拟DOM
-        render(props.children, dom);//把儿子变成真实DOM，并且挂载到自己身上
+        mount(props.children, dom);//把儿子变成真实DOM，并且挂载到自己身上
     } else if (Array.isArray(props.children)) {//有多个儿子
         reconcileChildren(props.children, dom);
     }
@@ -122,7 +134,7 @@ function mountFunctionComponent(vdom) {
 function reconcileChildren(childrenVdom, parentDOM) {
     for (let i = 0; i < childrenVdom.length; i++) {
         const child = childrenVdom[i];
-        render(child, parentDOM);//把儿子挂载的自己身上
+        mount(child, parentDOM);//把儿子挂载的自己身上
     }
 }
 /**
@@ -169,12 +181,16 @@ export function compareTwoVdom(parentDOM, oldRenderVdom, newRenderVdom, nextDom)
         } else {
             parentDOM.appendChild(newDOM);
         }
+        //调用生命周期方法componentDidMount
+        newDOM.classInstance.componentDidMount && newDOM.classInstance.componentDidMount();
     } else if (oldRenderVdom && newRenderVdom && oldRenderVdom.type !== newRenderVdom.type) {//新老虚拟DOM都存在，但是类型不同
         const oldDOM = findDOM(oldRenderVdom);//老得真实DOM
         const newDOM = createDOM(newRenderVdom);//新的真实DOM
         parentDOM.replaceChild(newDOM, oldDOM);
         //调用生命周期方法
         oldRenderVdom.classInstance && oldRenderVdom.classInstance.componentWillUnmount && oldRenderVdom.classInstance.componentWillUnmount()
+        //调用生命周期方法componentDidMount
+        newDOM.classInstance.componentDidMount && newDOM.classInstance.componentDidMount();
     } else {//新老都有，类型也一样，要进行深度DOM-DIFF
         updateElement(oldRenderVdom, newRenderVdom);
     }
@@ -210,10 +226,10 @@ function updateElement(oldRenderVdom, newRenderVdom) {
  * @param {*} newVdom 新的虚拟DOM
  */
 function updateFunctionComponent(oldVdom, newVdom) {
-    const parentDOM = findDOM(oldVdom).parentDOM;//找到老得父节点
+    const parentDOM = findDOM(oldVdom).parentNode;//找到老得父节点
     const { type: FunctionComponent, props } = newVdom;
     const oldRenderVdom = oldVdom.oldRenderVdom;//老得的渲染虚拟DOM
-    const newRenderVdom = FunctionComponent(props);//新的渲染虚拟DOM
+    const newRenderVdom = FunctionComponent(props);//新的渲染虚拟DOM 
     compareTwoVdom(parentDOM, oldRenderVdom, newRenderVdom);//比较虚拟DOM
     newVdom.oldRenderVdom = newRenderVdom;
 }
@@ -266,6 +282,24 @@ export function findDOM(vdom) {
         dom = vdom.dom;
     }
     return dom
+}
+
+/**
+ * 让函数组件可以使用状态
+ * @param {*} initialValue 初始状态
+ */
+export function useState(initialValue) {
+    //把老得值取出来，如果没有，去默认值
+    hookStates[hookIndex] = hookStates[hookIndex] || (typeof initialValue === 'function' ? initialValue() : initialValue);
+    let currentIndex = hookIndex;//闭包记录每个setState的位置
+    function setState(newState) {
+        if (typeof newState === 'function') {//函数
+            newState = newState(hookStates[currentIndex]);
+        }
+        hookStates[currentIndex] = newState;
+        scheduleUpdate();//状态改变后需要重新更新应用
+    }
+    return [hookStates[hookIndex++], setState]
 }
 
 const ReactDOM = {

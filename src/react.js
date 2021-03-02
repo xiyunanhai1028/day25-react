@@ -2,13 +2,14 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-01 22:10:00
+ * @LastEditTime: 2021-03-02 07:39:01
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
 import Component from './Component';
 import PureComponent from './PureComponent';
 import { wrapToVdom } from './utils';
+import {useState} from './react-dom';
 /**
  * 
  * @param {*} type 元素类型
@@ -82,12 +83,14 @@ function cloneElement(oldElement, newProps, ...newChildren) {
     const props = { ...oldElement.props, ...newProps };
     return { ...oldElement, props };
 }
+
 const React = {
     createElement,
     Component,
     PureComponent,
     createRef,
     createContext,
-    cloneElement
+    cloneElement,
+    useState
 }
 export default React;

@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:16:54
  * @LastEditors: dfh
- * @LastEditTime: 2021-02-24 23:23:17
+ * @LastEditTime: 2021-03-02 08:11:00
  * @Modified By: dfh
  * @FilePath: /day25-react/README.md
 -->
@@ -2277,7 +2277,7 @@ function updateProps(dom, oldProps, props) {
  * @param {*} newVdom 新的虚拟DOM
  */
 + function updateFunctionComponent(oldVdom, newVdom) {
-+   const parentDOM = findDOM(oldVdom).parentDOM;//找到老得父节点
++   const parentDOM = findDOM(oldVdom).parentNode;//找到老得父节点
 +   const { type: FunctionComponent, props } = newVdom;
 +   const oldRenderVdom = oldVdom.oldRenderVdom;//老得的渲染虚拟DOM
 +   const newRenderVdom = FunctionComponent(props);//新的渲染虚拟DOM
@@ -2675,7 +2675,7 @@ function updateElement(oldRenderVdom, newRenderVdom) {
  * @param {*} newVdom 新的虚拟DOM
  */
 function updateFunctionComponent(oldVdom, newVdom) {
-    const parentDOM = findDOM(oldVdom).parentDOM;//找到老得父节点
+    const parentDOM = findDOM(oldVdom).parentNode;//找到老得父节点
     const { type: FunctionComponent, props } = newVdom;
     const oldRenderVdom = oldVdom.oldRenderVdom;//老得的渲染虚拟DOM
     const newRenderVdom = FunctionComponent(props);//新的渲染虚拟DOM
@@ -3228,7 +3228,7 @@ function updateElement(oldRenderVdom, newRenderVdom) {
  * @param {*} newVdom 新的虚拟DOM
  */
 function updateFunctionComponent(oldVdom, newVdom) {
-    const parentDOM = findDOM(oldVdom).parentDOM;//找到老得父节点
+    const parentDOM = findDOM(oldVdom).parentNode;//找到老得父节点
     const { type: FunctionComponent, props } = newVdom;
     const oldRenderVdom = oldVdom.oldRenderVdom;//老得的渲染虚拟DOM
     const newRenderVdom = FunctionComponent(props);//新的渲染虚拟DOM
@@ -3831,7 +3831,7 @@ function updateElement(oldRenderVdom, newRenderVdom) {
  * @param {*} newVdom 新的虚拟DOM
  */
 function updateFunctionComponent(oldVdom, newVdom) {
-    const parentDOM = findDOM(oldVdom).parentDOM;//找到老得父节点
+    const parentDOM = findDOM(oldVdom).parentNode;//找到老得父节点
     const { type: FunctionComponent, props } = newVdom;
     const oldRenderVdom = oldVdom.oldRenderVdom;//老得的渲染虚拟DOM
     const newRenderVdom = FunctionComponent(props);//新的渲染虚拟DOM
