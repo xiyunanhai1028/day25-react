@@ -498,5 +498,59 @@ function App() {
 ReactDOM.render(<App />, document.getElementById('root'));
 ```
 
+#### 6.2.实现
+
+![useEffect](/Users/dufeihu/Documents/html/zhufeng/复习/day25-react/useEffect.gif)
+
+##### 6.2.1.`src/react.js`
+
+```javascript
+import { useState, useCallback, useMemo, useReducer,useContext,useEffect } from './react-dom';
+
+const React = {
+    useEffect
+}
+```
+
+##### 6.2.2.`src/react-dom.js`
+
+```javascript
+/**
+ * 为了保证回调函数不是同步执行，而是在页面渲染后执行，需要把回调放入红任务队列
+ * @param {*} callback 回调函数，页面渲染完成后执行
+ * @param {*} deps 依赖数组
+ */
+export function useEffect(callback, deps) {
+    if (hookStates[hookIndex]) {
+        const [oldDestroyFunction, oldDeps] = hookStates[hookIndex];
+        const same = deps && deps.every((item, index) => item === oldDeps[index]);
+        if (same) {//老得依赖和新的依赖一样
+            hookIndex++;
+        } else {
+            oldDestroyFunction && oldDestroyFunction();
+            setTimeout(() => {//把回调放入红任务队列中
+                const destroyFunction = callback();
+                hookStates[hookIndex++] = [destroyFunction, deps]
+            });
+        }
+    } else {//第一次执行
+        setTimeout(() => {//把回调放入红任务队列中
+            const destroyFunction = callback();
+            hookStates[hookIndex++] = [destroyFunction, deps]
+        });
+    }
+}
+```
+
+### 7.useLayoutEffect&useRef
+
+#### 7.1.实现
+
+##### 7.1.1.`src/react.js`
+
+```javascript
+
+```
+
 
 

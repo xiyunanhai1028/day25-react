@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 17:18:54
+ * @LastEditTime: 2021-03-02 17:38:26
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -384,6 +384,32 @@ export function useEffect(callback, deps) {
             hookStates[hookIndex++] = [destroyFunction, deps]
         });
     }
+}
+
+export function useLayoutEffect(callback, deps) {
+    if (hookStates[hookIndex]) {
+        const { oldDestroyFunction, oldDeps } = hookStates[hookIndex];
+        const same = deps && deps.every((item, index) => item === oldDeps(index));
+        if (same) {
+            hookIndex++;
+        } else {
+            queueMicrotask(() => {//把回调放入微任务队列中
+                oldDestroyFunction && oldDestroyFunction();//销毁上一次的
+                const destroyFunction = callback();
+                hookStates[hookIndex++] = [destroyFunction, deps]
+            })
+        }
+    } else {
+        queueMicrotask(() => {//把回调放入微任务队列中
+            const destroyFunction = callback();
+            hookStates[hookIndex++] = [destroyFunction, deps]
+        })
+    }
+}
+
+export function useRef(initialValue) {
+    hookStates[hookIndex] = hookStates[hookIndex] || { current: initialValue };
+    return hookStates[hookIndex++]
 }
 const ReactDOM = {
     render
