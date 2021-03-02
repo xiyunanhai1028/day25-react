@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 22:36:43
+ * @LastEditTime: 2021-03-02 22:48:01
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -179,7 +179,12 @@ export function compareTwoVdom(parentDOM, oldRenderVdom, newRenderVdom, nextDom)
         const currentDOM = findDOM(oldRenderVdom);//找到此虚拟DOM对应的真实DOM
         currentDOM && parentDOM.removeChild(currentDOM);//移除此老得真实DOM
         //调用生命周期方法
-        oldRenderVdom.classInstance && oldRenderVdom.classInstance.componentWillUnmount && oldRenderVdom.classInstance.componentWillUnmount()
+        oldRenderVdom.classInstance && oldRenderVdom.classInstance.componentWillUnmount && oldRenderVdom.classInstance.componentWillUnmount();
+
+        if(hookStates[hookIndex]){//hooks生命周期执行
+            const [destoryFunction]=hookStates[hookIndex];
+            destoryFunction&&destoryFunction();
+        }
     } else if (!oldRenderVdom && newRenderVdom) {//新的虚拟DOM存在，老得虚拟DOM为NULL
         const newDOM = createDOM(newRenderVdom);//获取真实DOM
         if (nextDom) {
@@ -195,6 +200,11 @@ export function compareTwoVdom(parentDOM, oldRenderVdom, newRenderVdom, nextDom)
         parentDOM.replaceChild(newDOM, oldDOM);
         //调用生命周期方法
         oldRenderVdom.classInstance && oldRenderVdom.classInstance.componentWillUnmount && oldRenderVdom.classInstance.componentWillUnmount()
+       
+        if(hookStates[hookIndex]){//hooks生命周期执行
+            const [destoryFunction]=hookStates[hookIndex];
+            destoryFunction&&destoryFunction();
+        }
         //调用生命周期方法componentDidMount
         // newDOM.classInstance.componentDidMount && newDOM.classInstance.componentDidMount();
     } else {//新老都有，类型也一样，要进行深度DOM-DIFF

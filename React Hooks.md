@@ -759,6 +759,75 @@ ReactDOM.render(<App />, document.getElementById('root'));
 
 #### 10.2.实现
 
+##### 10.2.1.`src/react.js`
+
+```javascript
+import { useState, useCallback, useMemo, useReducer, useContext, useEffect, useLayoutEffect, useRef ,useImperativeHandle} from './react-dom';
+
+const React = {
+    useImperativeHandle
+}
+```
+
+##### 10.2..2.`src/react-dom.js`
+
+```javascript
+export function useImperativeHandle(ref,factory){
+    ref.current=factory();
+}
+```
+
+### 11.生命周期处理
+
+```javascript
+/**
+ * 对当前组件进行DOM-DIFF
+ * @param {*} parentDOM 老得父真实DOM
+ * @param {*} oldRenderVdom 老得虚拟DOM
+ * @param {*} newRenderVdom 新的虚拟DOM
+ * @param {*} nextDom 下一个真实DOM，主要用来插入找位置用
+ */
+export function compareTwoVdom(parentDOM, oldRenderVdom, newRenderVdom, nextDom) {
+    if (!oldRenderVdom && !newRenderVdom) {//新老虚拟DOM都为null
+        return null;
+    } else if (oldRenderVdom && !newRenderVdom) {//新的虚拟DOM为NULL，老得存在
+        const currentDOM = findDOM(oldRenderVdom);//找到此虚拟DOM对应的真实DOM
+        currentDOM && parentDOM.removeChild(currentDOM);//移除此老得真实DOM
+        //调用生命周期方法
+        oldRenderVdom.classInstance && oldRenderVdom.classInstance.componentWillUnmount && oldRenderVdom.classInstance.componentWillUnmount();
+
++       if(hookStates[hookIndex]){//hooks生命周期执行
++           const [destoryFunction]=hookStates[hookIndex];
++           destoryFunction&&destoryFunction();
++       }
+    } else if (!oldRenderVdom && newRenderVdom) {//新的虚拟DOM存在，老得虚拟DOM为NULL
+        const newDOM = createDOM(newRenderVdom);//获取真实DOM
+        if (nextDom) {
+            parentDOM.insertBefore(newDOM, nextDom);
+        } else {
+            parentDOM.appendChild(newDOM);
+        }
+        //调用生命周期方法componentDidMount
+        // newDOM.classInstance.componentDidMount && newDOM.classInstance.componentDidMount();
+    } else if (oldRenderVdom && newRenderVdom && oldRenderVdom.type !== newRenderVdom.type) {//新老虚拟DOM都存在，但是类型不同
+        const oldDOM = findDOM(oldRenderVdom);//老得真实DOM
+        const newDOM = createDOM(newRenderVdom);//新的真实DOM
+        parentDOM.replaceChild(newDOM, oldDOM);
+        //调用生命周期方法
+        oldRenderVdom.classInstance && oldRenderVdom.classInstance.componentWillUnmount && oldRenderVdom.classInstance.componentWillUnmount()
+       
++       if(hookStates[hookIndex]){//hooks生命周期执行
++           const [destoryFunction]=hookStates[hookIndex];
++           destoryFunction&&destoryFunction();
++       }
+        //调用生命周期方法componentDidMount
+        // newDOM.classInstance.componentDidMount && newDOM.classInstance.componentDidMount();
+    } else {//新老都有，类型也一样，要进行深度DOM-DIFF
+        updateElement(oldRenderVdom, newRenderVdom);
+    }
+}
+```
+
 
 
 
