@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 13:51:47
+ * @LastEditTime: 2021-03-02 14:28:10
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -291,17 +291,30 @@ export function findDOM(vdom) {
  * @param {*} initialValue 初始状态
  */
 export function useState(initialValue) {
-    //把老得值取出来，如果没有，去默认值
+    return useReducer(null, initialValue);
+}
+
+export function useReducer(reducer, initialValue) {
+    //把老得值取出来，如果没有，取默认值
     hookStates[hookIndex] = hookStates[hookIndex] || (typeof initialValue === 'function' ? initialValue() : initialValue);
-    let currentIndex = hookIndex;//闭包记录每个setState的位置
-    function setState(newState) {
-        if (typeof newState === 'function') {//函数
-            newState = newState(hookStates[currentIndex]);
+    let currentIndex = hookIndex;//闭包记录每次setState的位置
+    function dispatch(action) {
+        const oldState = hookStates[currentIndex];
+        let newState;
+        if (typeof action === 'function') {//setState里面是一个函数
+            newState = action(oldState)
         }
-        hookStates[currentIndex] = newState;
-        scheduleUpdate();//状态改变后需要重新更新应用
+        if (reducer) {//useReducer的情况
+            newState = reducer(hookStates[currentIndex], action);
+        } else {//setState情况
+            newState = action;
+        }
+        if (oldState !== newState) {
+            hookStates[currentIndex] = newState;
+            scheduleUpdate();
+        }
     }
-    return [hookStates[hookIndex++], setState]
+    return [hookStates[hookIndex++], dispatch];
 }
 
 export function useMemo(factory, deps) {

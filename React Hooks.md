@@ -216,5 +216,128 @@ ReactDOM.render(<App />, document.getElementById('root'));
 
 #### 3.3.实现
 
+##### 3.3.1.`src/react.js`
+
+```javascript
+import { useState, useCallback, useMemo } from './react-dom';
+
+/**
+ * 函数组件实现优化
+ * @param {*} FunctionComponent 函数组件
+ */
+function memo(FunctionComponent) {
+    return class extends PureComponent {
+        render() {
+            return FunctionComponent(this.props);
+        }
+    }
+}
+
+const React = {
+    useCallback,
+    useMemo,
+    memo
+}
+```
+
+##### 3.3.2.`src/react-dom.js`
+
+```javascript
+export function useMemo(factory, deps) {
+    if (hookStates[hookIndex]) {//有数据时进入
+        const [lastMemo, lastDeps] = hookStates[hookIndex];//获取上一次存储的数据和依赖
+        //将新的依赖和老得依赖一一对比
+        const same = deps.every((item, index) => item === lastDeps[index]);
+        if (same) {//如果一样
+            hookIndex++;
+            return lastMemo;//返回老得数据
+        } else {//如果不一样
+            let newMemo = factory();//执行工厂方法获取新的数据
+            hookStates[hookIndex++] = [newMemo, deps];//将新的依赖和数据存储起来
+            return newMemo;//返回新的数据
+        }
+
+    } else {//第一次走这里
+        const newMemo = factory();//获取工厂数据
+        hookStates[hookIndex++] = [newMemo, deps];//将数据和依赖存起来
+        return newMemo;//返回工厂数据
+    }
+}
+
+export function useCallback(callback, deps) {
+    if (hookStates[hookIndex]) {//已经存储过来
+        const [lastCallback, lastDeps] = hookStates[hookIndex];//获取老得回调和依赖
+        //将新的依赖和老得依赖一一对比
+        const same = deps.every((item, index) => item === lastDeps[index]);
+        if (same) {//如果一样
+            hookIndex++;
+            return lastCallback//返回老得回调
+        } else {//如果不一样
+            hookStates[hookIndex++] = [callback, deps];//将新的回调和依赖存储起来
+            return callback;//返回新的依赖
+        }
+    } else {//第一次进入
+        hookStates[hookIndex++] = [callback, deps];//将回调和依赖存储起来
+        return callback;//返回回到
+    }
+}
+```
+
+### 4.useReducer
+
+- useState的替代方案，它接收一个形如`(state action)=>newState`的`reducer`,并返回当前的state以及与其配套的`disaptch`方法
+- 在某些场景下，`useReducer`会比`useState`更实用，例如state逻辑过于复杂
+
+#### 4.1.事例
+
+![useReducer](/Users/dufeihu/Documents/html/zhufeng/复习/day25-react/useReducer.gif)
+
+```react
+/*
+ * @Author: dfh
+ * @Date: 2021-02-24 18:18:22
+ * @LastEditors: dfh
+ * @LastEditTime: 2021-03-02 14:14:32
+ * @Modified By: dfh
+ * @FilePath: /day25-react/src/index.js
+ */
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+const ADD = 'ADD';
+const MINUS = 'MINUS';
+
+/**
+ * 和redux很像
+ * @param {*} state 任意的状态
+ * @param {*} action 动作
+ */
+function reducer(state = { num: 0 }, action) {
+  switch (action.type) {
+    case ADD:
+      return { num: state.num + 1 }
+    case MINUS:
+      return { num: state.num - 1 }
+    default:
+      return state;
+  }
+}
+
+function Counter() {
+  const [state, dispatch] = React.useReducer(reducer, { num: 0 })
+  return <div style={{margin:100}}>
+    <p>Counter:{state.num}</p>
+    <button onClick={() => dispatch({ type: ADD })}>+</button>
+    <button onClick={() => dispatch({ type: MINUS })}>-</button>
+  </div>
+}
+
+ReactDOM.render(<Counter />, document.getElementById('root'));
+```
+
+#### 4.2.实现
+
+##### 4.2.1.`src/react.js`
+
 
 

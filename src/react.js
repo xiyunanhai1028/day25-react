@@ -2,14 +2,14 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:24
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 10:17:34
+ * @LastEditTime: 2021-03-02 14:28:47
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react.js
  */
 import Component from './Component';
 import PureComponent from './PureComponent';
 import { wrapToVdom } from './utils';
-import { useState, useCallback, useMemo } from './react-dom';
+import { useState, useCallback, useMemo,useReducer } from './react-dom';
 /**
  * 
  * @param {*} type 元素类型
@@ -106,6 +106,7 @@ const React = {
     useState,
     useCallback,
     useMemo,
-    memo
+    memo,
+    useReducer
 }
 export default React;
