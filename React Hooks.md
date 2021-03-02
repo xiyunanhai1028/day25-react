@@ -549,7 +549,42 @@ export function useEffect(callback, deps) {
 ##### 7.1.1.`src/react.js`
 
 ```javascript
+import { useState, useCallback, useMemo, useReducer,useContext,useEffect,useLayoutEffect,useRef } from './react-dom';
 
+const React = {
+    useLayoutEffect,
+    useRef
+}
+```
+
+##### 7.1.2.`src/react-dom.js`
+
+```javascript
+export function useLayoutEffect(callback, deps) {
+    if (hookStates[hookIndex]) {
+        const { oldDestroyFunction, oldDeps } = hookStates[hookIndex];
+        const same = deps && deps.every((item, index) => item === oldDeps(index));
+        if (same) {
+            hookIndex++;
+        } else {
+          	oldDestroyFunction && oldDestroyFunction();//销毁上一次的
+            queueMicrotask(() => {//把回调放入微任务队列中
+                const destroyFunction = callback();
+                hookStates[hookIndex++] = [destroyFunction, deps]
+            })
+        }
+    } else {
+        queueMicrotask(() => {//把回调放入微任务队列中
+            const destroyFunction = callback();
+            hookStates[hookIndex++] = [destroyFunction, deps]
+        })
+    }
+}
+
+export function useRef(initialValue) {
+    hookStates[hookIndex] = hookStates[hookIndex] || { current: initialValue };
+    return hookStates[hookIndex++]
+}
 ```
 
 

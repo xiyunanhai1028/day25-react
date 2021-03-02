@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:34:32
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 17:38:26
+ * @LastEditTime: 2021-03-02 17:43:36
  * @Modified By: dfh
  * @FilePath: /day25-react/src/react-dom.js
  */
@@ -393,8 +393,8 @@ export function useLayoutEffect(callback, deps) {
         if (same) {
             hookIndex++;
         } else {
+            oldDestroyFunction && oldDestroyFunction();//销毁上一次的
             queueMicrotask(() => {//把回调放入微任务队列中
-                oldDestroyFunction && oldDestroyFunction();//销毁上一次的
                 const destroyFunction = callback();
                 hookStates[hookIndex++] = [destroyFunction, deps]
             })
