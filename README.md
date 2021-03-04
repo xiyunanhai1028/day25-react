@@ -2,7 +2,7 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:16:54
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 08:11:00
+ * @LastEditTime: 2021-03-04 08:59:49
  * @Modified By: dfh
  * @FilePath: /day25-react/README.md
 -->
@@ -68,7 +68,7 @@ React.createElement("div", {
 ```
 
 ### 2. 实现原生组件的渲染
-
+![渲染过程](https://tva1.sinaimg.cn/large/e6c9d24ely1go6kc4sysoj20te0u6myw.jpg)
 ``` tree
 src
 ├── index.js
@@ -87,7 +87,7 @@ let element = React.createElement("div", {
     style: {
         color: 'red',
         background: 'green'
-    }
+    } 
 }, React.createElement("span", null, "hello"), "world");
 
 ReactDOM.render(element, document.getElementById('root'));

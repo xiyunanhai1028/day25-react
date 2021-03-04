@@ -2,43 +2,76 @@
  * @Author: dfh
  * @Date: 2021-02-24 18:18:22
  * @LastEditors: dfh
- * @LastEditTime: 2021-03-02 22:40:28
+ * @LastEditTime: 2021-03-03 16:54:06
  * @Modified By: dfh
  * @FilePath: /day25-react/src/index.js
  */
-import React from './react';
-import ReactDOM from './react-dom';
+import React from 'react';
+import ReactDOM from 'react-dom'
 
-function Counter(props, ref) {
-  const inputRef = React.useRef();
-  //暴露只想让外界操作的方法
-  React.useImperativeHandle(ref, () => ({
-    focus() {
-      inputRef.current.focus();
-    }
-  }))
-  return <input type="text" ref={inputRef} />
-}
-
-const WrapperCounter = React.forwardRef(Counter);
-function App() {
-  const ref = React.useRef();
-
-  const getFocus = () => {
-    //暴露的方法
-    ref.current.focus();
+class Parent extends React.Component {
+  state = { num: 0 }
+  componentWillMount() {
+    console.log('Parent-componentWillMount')
+  }
+  componentDidMount() {
+    console.log('Parent-componentDidMount')
   }
 
-  const removeInput = () => {
-    //为暴露的方法
-    ref.current.remove();
+  componentWillUpdate() {
+    console.log('Parent-componentWillUpdate')
+  }
+  componentDidUpdate() {
+    console.log('Parent-componentDidUpdate')
+  }
+  componentWillReceiveProps() {
+    console.log('Parent-componentWillReceiveProps')
   }
 
-  return <div>
-    <WrapperCounter ref={ref} />
-    <button onClick={getFocus}>获取焦点</button>
-    <button onClick={removeInput}>操作为暴露的方法</button>
-  </div>
-}
-ReactDOM.render(<App />, document.getElementById('root'));
+  shouldComponentUpdate() {
+    console.log('Parent-shouldComponentUpdate')
+    return false
+  }
 
+  render() {
+    console.log('Parent-render')
+    return <div>
+      Parent
+      <button onClick={() => this.setState({ num: this.state.num + 1 })}>+1</button>
+      <Child num={this.state.num} />
+    </div>
+  }
+}
+
+class Child extends React.Component {
+  componentWillMount() {
+    console.log('Child-componentWillMount')
+  }
+  componentDidMount() {
+    console.log('Child-componentDidMount')
+  }
+
+  componentWillUpdate() {
+    console.log('Child-componentWillUpdate')
+  }
+  componentDidUpdate() {
+    console.log('Child-componentDidUpdate')
+  }
+  componentWillReceiveProps() {
+    console.log('Child-componentWillReceiveProps')
+  }
+
+  shouldComponentUpdate() {
+    console.log('Child-shouldComponentUpdate')
+    return true
+  }
+
+  render() {
+    console.log('Child-render')
+    return <div>
+      child-{this.props.num}
+    </div>
+  }
+}
+
+ReactDOM.render(<Parent />, document.getElementById('root'));

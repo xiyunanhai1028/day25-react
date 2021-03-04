@@ -134,7 +134,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));
 
 > 在不管是输入框输入数据，还是点击按钮添加的时候，都会触发父子组件render
 
-![没使用useMemo](/Users/dufeihu/Documents/html/zhufeng/复习/day25-react/没使用useMemo.gif)
+![没使用useMemo](https://cdn.nlark.com/yuque/0/2021/gif/928275/1614725267641-3dee8eb0-e983-49b4-9f6d-309c2012d80d.gif)
 
 ```react
 /*
@@ -175,7 +175,7 @@ ReactDOM.render(<App />, document.getElementById('root'));
 
 > 当在输入框内输入内容时，子组件并没有刷新，只有在点击的时候父子组件才刷新
 
-![使用useMemo](/Users/dufeihu/Documents/html/zhufeng/复习/day25-react/使用useMemo.gif)
+![使用useMemo](https://cdn.nlark.com/yuque/0/2021/gif/928275/1614725316423-15a42119-75fa-4624-bcfd-4c2c48178f47.gif)
 
 ```react
 /*
@@ -290,7 +290,7 @@ export function useCallback(callback, deps) {
 
 #### 4.1.事例
 
-![useReducer](/Users/dufeihu/Documents/html/zhufeng/复习/day25-react/useReducer.gif)
+![useReducer](https://cdn.nlark.com/yuque/0/2021/gif/928275/1614725345067-64e09015-6cfe-42a7-a5d2-0fd7133fa965.gif)
 
 ```react
 /*
@@ -500,7 +500,7 @@ ReactDOM.render(<App />, document.getElementById('root'));
 
 #### 6.2.实现
 
-![useEffect](/Users/dufeihu/Documents/html/zhufeng/复习/day25-react/useEffect.gif)
+![useEffect](https://cdn.nlark.com/yuque/0/2021/gif/928275/1614725423939-5dcf326a-9169-46e4-a3bb-12844a30a324.gif)
 
 ##### 6.2.1.`src/react.js`
 
@@ -593,7 +593,7 @@ export function useRef(initialValue) {
 
 > useEffect中的回调被放在了红任务中，useLayoutEffect的回调被放到了微任务中，浏览器的事情环`主站任务`->`清空微任务队列`->`GUI渲染`->`取出一个红任务执行`，这样看来，useLayoutEffect的回调调用时机是在页面渲染前执行的，而useEffect的回调调用时机是在页面渲染完成后
 
-
+![useEffect和useLayoutEffect](https://cdn.nlark.com/yuque/0/2021/gif/928275/1614725452896-991cc2ff-8858-48dc-a551-147b3e8e9684.gif)
 
 ```react
 /*
@@ -648,7 +648,7 @@ ReactDOM.render(<Animate />, document.getElementById('root'));
 
 > 点击按钮时，输入框获取焦点
 
-![forwardRef](/Users/dufeihu/Documents/html/zhufeng/复习/day25-react/forwardRef.gif)
+![forwardRef](https://cdn.nlark.com/yuque/0/2021/gif/928275/1614725482015-ebe7b729-ad66-4d19-b41c-1d5fe599dda9.gif)
 
 ```react
 import React from 'react';
@@ -717,7 +717,7 @@ const React = {
 
 #### 10.1.事例
 
-![useImperativeHandle](/Users/dufeihu/Documents/html/zhufeng/复习/day25-react/useImperativeHandle.gif)
+![useImperativeHandle](https://cdn.nlark.com/yuque/0/2021/gif/928275/1614725505225-e06e3470-60e8-46ab-b71a-77c9e42f7e62.gif)
 
 ```react
 import React from 'react';
